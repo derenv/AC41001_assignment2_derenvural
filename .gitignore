@@ -1,0 +1,10 @@
+.vs
+Debug
+x64
+assignment1_derenvural.sln
+projects/assignment1/x64
+projects/assignment1/Debug
+projects/assignment1/Release
+projects/assignment1/*.vcxproj*
+include
+lib
