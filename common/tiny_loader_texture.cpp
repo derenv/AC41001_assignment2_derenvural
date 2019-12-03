@@ -104,27 +104,23 @@ void TinyObjLoader::load_obj(string inputfile, bool debugPrint, bool smoothShade
 	std::vector<tinyobj::real_t> pVertices(numVertices * 3);
 	std::vector<tinyobj::real_t> pTextureCoords(numVertices * 2);
 	std::vector<tinyobj::real_t> pNormals(numVertices * 3);
-	std::vector<GLuint> nb_seen;
-	nb_seen.resize(attrib.vertices.size(), 0);
 
 	// smooth normals sanity check
 	if (attrib.normals.size() <= 0) {
 		//no normals present
-		cerr << "No normals present in file " << inputfile << ", generating: " << endl;
+		cerr << "No normals present in file " << inputfile << ", generating: ";
+		if (smoothShade){
+			cerr << "SMOOTH NORMALS" << endl;
+		} else {
+			cerr << "FLAT NORMALS" << endl;
+		}
 
 		//generate
-		if (smoothShade)
-		{
-			cerr << "SMOOTH NORMALS GENERATING" << endl;
-			pNormals = tinyobj::smoothNormals(attrib, shapes, numVertices);
-		} else {
-			cerr << "FLAT NORMALS GENERATING" << endl;
-		}
+		tinyobj::generate_normals(&attrib, &shapes, smoothShade);
 	}
 
 	GLuint ind = 0;
 	for (size_t s = 0; s < shapes.size(); s++) {
-
 		// Loop over faces(polygon)
 		size_t index_offset = 0;
 
@@ -133,67 +129,27 @@ void TinyObjLoader::load_obj(string inputfile, bool debugPrint, bool smoothShade
 		{
 			int fv = shapes[s].mesh.num_face_vertices[f];//number of vertices per face (3)
 
-			// generate flat normals
-			glm::vec3 normal = glm::vec3(0);
-			normal = flatNormals(attrib, shapes[s], index_offset);
-			if (!smoothShade) {
-				normal = flatNormals(attrib, shapes[s], index_offset);
-			}
-
 			// Loop over vertices in the face.
 			for (size_t v = 0; v < fv; v++)
 			{
-				// access to vertex
+				// Get current vertex indice
 				tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
-				GLuint cur_v = idx.vertex_index;
 
-				pVertices[ind * 3] = attrib.vertices[3 * idx.vertex_index + 0];//x
-				pVertices[ind * 3 +1] = attrib.vertices[3 * idx.vertex_index + 1];//y
-				pVertices[ind * 3 +2] = attrib.vertices[3 * idx.vertex_index + 2];//z
+				// Get current vertice coordinates
+				pVertices[ind * 3 + 0] = attrib.vertices[3 * idx.vertex_index + 0];//x
+				pVertices[ind * 3 + 1] = attrib.vertices[3 * idx.vertex_index + 1];//y
+				pVertices[ind * 3 + 2] = attrib.vertices[3 * idx.vertex_index + 2];//z
 
+				// If present in file get texture coordinates
 				if (idx.texcoord_index != -1) {
 					pTextureCoords[ind * 2 + 0] = attrib.texcoords[2 * idx.texcoord_index + 0];//x
 					pTextureCoords[ind * 2 + 1] = attrib.texcoords[2 * idx.texcoord_index + 1];//y
-				} 
-
-				if (idx.normal_index != -1) {
-					// use provided normals
-					pNormals[ind * 3 + 0] = attrib.normals[3 * idx.normal_index + 0];//x
-					pNormals[ind * 3 + 1] = attrib.normals[3 * idx.normal_index + 1];//y
-					pNormals[ind * 3 + 2] = attrib.normals[3 * idx.normal_index + 2];//z
-				} else {
-					//use generated normals
-					if (!smoothShade) {
-						// flat shading
-						pNormals[ind * 3 + 0] = normal.x;//x
-						pNormals[ind * 3 + 1] = normal.y;//y
-						pNormals[ind * 3 + 2] = normal.z;//z
-					} else {
-						//Set average normal
-						nb_seen[cur_v]++;
-						if (nb_seen[cur_v] == 1) {
-							pNormals[ind * 3] = normal.x;
-							pNormals[ind * 3 +1] = normal.y;
-							pNormals[ind * 3 +2] = normal.z;
-						} else {
-							glm::vec3 average_normal = glm::vec3(
-								pNormals[ind * 3 + 0] * (1.f - 1.f / nb_seen[cur_v]) + normal.x * 1.f / nb_seen[cur_v],//x
-								pNormals[ind * 3 + 1] * (1.f - 1.f / nb_seen[cur_v]) + normal.y * 1.f / nb_seen[cur_v], //y
-								pNormals[ind * 3 + 2] * (1.f - 1.f / nb_seen[cur_v]) + normal.z * 1.f / nb_seen[cur_v] //z
-							);
-
-							// Normalise normals
-							glm::vec3 new_normal = glm::normalize(average_normal);
-
-							// Set final normal
-							pNormals[ind * 3] = new_normal.x;
-							pNormals[ind * 3 + 1] = new_normal.y;
-							pNormals[ind * 3 + 2] = new_normal.z;
-						}
-					}
 				}
 
-				// no colours
+				// Get normal values
+				pNormals[ind * 3 + 0] = attrib.normals[3 * idx.normal_index + 0];//x
+				pNormals[ind * 3 + 1] = attrib.normals[3 * idx.normal_index + 1];//y
+				pNormals[ind * 3 + 2] = attrib.normals[3 * idx.normal_index + 2];//z
 
 				ind++;
 			}

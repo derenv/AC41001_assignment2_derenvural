@@ -1764,159 +1764,86 @@ bool MaterialStreamReader::operator()(const std::string &matId,
 }
 
 
-/** Flat shaded normals */
-glm::vec3 flatNormals(attrib_t attrib, shape_t shape, size_t index_offset)
+/* This function generates normals (smooth OR flat) and adds them to the attributes */
+void generate_normals(attrib_t* attrib, std::vector<shape_t>* shapes, bool smooth)
 {
-	//normal
-	tinyobj::index_t idx1 = shape.mesh.indices[index_offset];
-	tinyobj::index_t idx2 = shape.mesh.indices[index_offset + 1];
-	tinyobj::index_t idx3 = shape.mesh.indices[index_offset + 2];
-	GLuint x1 = 3 * idx1.vertex_index + 0;
-	GLuint y1 = 3 * idx1.vertex_index + 1;
-	GLuint z1 = 3 * idx1.vertex_index + 2;
+	// modify attributes for new normals
+	attrib->normals.resize(attrib->vertices.size(),0);
 
-	GLuint x2 = 3 * idx2.vertex_index + 0;
-	GLuint y2 = 3 * idx2.vertex_index + 1;
-	GLuint z2 = 3 * idx2.vertex_index + 2;
-
-	GLuint x3 = 3 * idx3.vertex_index + 0;
-	GLuint y3 = 3 * idx3.vertex_index + 1;
-	GLuint z3 = 3 * idx3.vertex_index + 2;
-	glm::vec3 normal = normalize(cross(
-		glm::vec3(attrib.vertices[x2], attrib.vertices[y2], attrib.vertices[z2]) - glm::vec3(attrib.vertices[x1], attrib.vertices[y1], attrib.vertices[z1]),
-		glm::vec3(attrib.vertices[x3], attrib.vertices[y3], attrib.vertices[z3]) - glm::vec3(attrib.vertices[x1], attrib.vertices[y1], attrib.vertices[z1])
-	));
-
-	return normal;
-}
-
-/* This is the smooth normals function given in the tutorial code */
-std::vector<real_t> smoothNormals(attrib_t attrib, std::vector<shape_t> shapes, GLuint numVertices)
-{
-	// seen vertices (should be attrib.vertices.size() size)
-	std::vector<GLuint> nb_seen;
-	nb_seen.resize(attrib.vertices.size() / 3, 0);
-
-	//output vector
-	std::vector<tinyobj::real_t> pNormals(numVertices * 3);
-
-	// for each shape
-	for (size_t s = 0; s < shapes.size(); s++) {
+	// Calculate normal for each face and add to each vertex
+	// For each shape
+	size_t ind = 0;
+	for (size_t s = 0; s < (*shapes).size(); s++) {
 		size_t index_offset = 0;
 
-		//for each face
-		for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++)
+		// For each face
+		for (size_t f = 0; f < (*shapes)[s].mesh.num_face_vertices.size(); f++)
 		{
-			//set up variables
-			tinyobj::index_t idx[3];
-			GLuint x[3];
-			GLuint y[3];
-			GLuint z[3];
+			// Set up variables
+			GLuint idx[3], x[3], y[3], z[3];
 			
-			//get variables
+			// Get variables
 			for(size_t v=0;v<3;v++){
-				// get indice container for current vertex
-				idx[v] = shapes[s].mesh.indices[index_offset+v];
+				// Get indice for current vertex
+				idx[v] = (*shapes)[s].mesh.indices[index_offset+v].vertex_index;
+
+				// Set new normal indice for current vertex
+				(*shapes)[s].mesh.indices[index_offset + v].normal_index = (*shapes)[s].mesh.indices[index_offset + v].vertex_index;
 				
-				// get position of each vertex in face
-				x[v] = 3 * idx[v].vertex_index + 0;
-				y[v] = 3 * idx[v].vertex_index + 1;
-				z[v] = 3 * idx[v].vertex_index + 2;
+				// Get position of each vertex in attrib array
+				x[v] = 3 * idx[v] + 0;
+				y[v] = 3 * idx[v] + 1;
+				z[v] = 3 * idx[v] + 2;
 			}
 			
-			//normal
+			// Calculate normal
 			glm::vec3 normal = glm::normalize(glm::cross(
-				glm::vec3(attrib.vertices[x[1]], attrib.vertices[y[1]], attrib.vertices[z[1]]) - glm::vec3(attrib.vertices[x[0]], attrib.vertices[y[0]], attrib.vertices[z[0]]),
-				glm::vec3(attrib.vertices[x[2]], attrib.vertices[y[2]], attrib.vertices[z[2]]) - glm::vec3(attrib.vertices[x[0]], attrib.vertices[y[0]], attrib.vertices[z[0]])
+				glm::vec3(attrib->vertices[x[1]], attrib->vertices[y[1]], attrib->vertices[z[1]]) - glm::vec3(attrib->vertices[x[0]], attrib->vertices[y[0]], attrib->vertices[z[0]]),
+				glm::vec3(attrib->vertices[x[2]], attrib->vertices[y[2]], attrib->vertices[z[2]]) - glm::vec3(attrib->vertices[x[0]], attrib->vertices[y[0]], attrib->vertices[z[0]])
 			));
-			
-			// Add to normals
-			for(size_t v=0;v<3;v++){
-				pNormals[x[v]] = pNormals[x[v]] + normal.x;
-				pNormals[y[v]] = pNormals[y[v]] + normal.y;
-				pNormals[z[v]] = pNormals[z[v]] + normal.z;
+
+			for (size_t v = 0; v < 3; v++) {
+				if (smooth) {
+					// Add to old normal (smooth normals)
+					attrib->normals[x[v]] = attrib->normals[x[v]] + normal.x;
+					attrib->normals[y[v]] = attrib->normals[y[v]] + normal.y;
+					attrib->normals[z[v]] = attrib->normals[z[v]] + normal.z;
+				} else {
+					// Set as new normal (flat normals)
+					attrib->normals[x[v]] = normal.x;
+					attrib->normals[y[v]] = normal.y;
+					attrib->normals[z[v]] = normal.z;
+				}
 			}
-			
-			// get indice container for current vertex
-			//tinyobj::index_t idx1 = shapes[s].mesh.indices[index_offset];
-			//tinyobj::index_t idx2 = shapes[s].mesh.indices[index_offset + 1];
-			//tinyobj::index_t idx3 = shapes[s].mesh.indices[index_offset + 2];
-
-			// get position of each vertex in face
-			// vertex 1
-			//GLuint x1 = 3 * idx1.vertex_index + 0;
-			//GLuint y1 = 3 * idx1.vertex_index + 1;
-			//GLuint z1 = 3 * idx1.vertex_index + 2;
-
-			// vertex 2
-			//GLuint x2 = 3 * idx2.vertex_index + 0;
-			//GLuint y2 = 3 * idx2.vertex_index + 1;
-			//GLuint z2 = 3 * idx2.vertex_index + 2;
-
-			// vertex 3
-			//GLuint x3 = 3 * idx3.vertex_index + 0;
-			//GLuint y3 = 3 * idx3.vertex_index + 1;
-			//GLuint z3 = 3 * idx3.vertex_index + 2;
-
-			//normal
-			//glm::vec3 normal = glm::normalize(glm::cross(
-			//	glm::vec3(attrib.vertices[x2], attrib.vertices[y2], attrib.vertices[z2]) - glm::vec3(attrib.vertices[x1], attrib.vertices[y1], attrib.vertices[z1]),
-			//	glm::vec3(attrib.vertices[x3], attrib.vertices[y3], attrib.vertices[z3]) - glm::vec3(attrib.vertices[x1], attrib.vertices[y1], attrib.vertices[z1])
-			//));
-
-			// Add to 1st normal
-			//pNormals[x1] = pNormals[x1] + normal.x;
-			//pNormals[y1] = pNormals[y1] + normal.y;
-			//pNormals[z1] = pNormals[z1] + normal.z;
-			
-			// Add to 2nd normal
-			//pNormals[x2] = pNormals[x2] + normal.x;
-			//pNormals[y2] = pNormals[y2] + normal.y;
-			//pNormals[z2] = pNormals[z2] + normal.z;
-			
-			// Add to 3rd normal
-			//pNormals[x3] = pNormals[x3] + normal.x;
-			//pNormals[y3] = pNormals[y3] + normal.y;
-			//pNormals[z3] = pNormals[z3] + normal.z;
+			index_offset += 3;
 		}
 	}
 
-	// for each shape
-	for (size_t s = 0; s < shapes.size(); s++) {
-		//for each face
-		for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++){
-			//set up variables
-			tinyobj::index_t idx[3];
-			GLuint x[3];
-			GLuint y[3];
-			GLuint z[3];
-			
-			//get variables
+	// Normalise each normal
+	// For each shape
+	for (size_t s = 0; s < (*shapes).size(); s++) {
+		size_t index_offset = 0;
+		// For each face
+		for (size_t f = 0; f < (*shapes)[s].mesh.num_face_vertices.size(); f++){
+			// For each vertex
 			for(size_t v=0;v<3;v++){
-				// get indice container for current vertex
-				idx[v] = shapes[s].mesh.indices[index_offset+v];
-				
-				// get position of each vertex in face
-				x[v] = 3 * idx[v].vertex_index + 0;
-				y[v] = 3 * idx[v].vertex_index + 1;
-				z[v] = 3 * idx[v].vertex_index + 2;
-			
-			
-				// Get new normal
-				glm::vec3 average_normal = (pNormals[x[v]], pNormals[y[v]], pNormals[z[v]]);
+				// Get indice for current vertex
+				GLuint idx = (*shapes)[s].mesh.indices[index_offset + v].normal_index;
 
-				// Normalise normals
+				// Get average normal
+				glm::vec3 average_normal = glm::vec3(attrib->normals[3 * idx + 0], attrib->normals[3 * idx + 1], attrib->normals[3 * idx + 2]);
+
+				// Normalise normal
 				glm::vec3 new_normal = glm::normalize(average_normal);
 
 				// Set final normal
-				pNormals[x[v]] = new_normal.x;
-				pNormals[y[v]] = new_normal.y;
-				pNormals[z[v]] = new_normal.z;
+				attrib->normals[3 * idx + 0] = new_normal.x;
+				attrib->normals[3 * idx + 1] = new_normal.y;
+				attrib->normals[3 * idx + 2] = new_normal.z;
 			}
+			index_offset += 3;
 		}
 	}
-	
-	return pNormals;
 }
 
 bool LoadObj(attrib_t *attrib, std::vector<shape_t> *shapes,
