@@ -177,6 +177,8 @@ void TinyObjLoader::load_obj(string inputfile, bool debugPrint, bool smoothShade
 	if (use_colours) {
 		overrideColour(vec4(0.f, 0.f, 1.f, 1.f));
 	}
+
+	if(debugPrint){ PrintInfo(attrib, shapes, materials); }
 }
 
 /**

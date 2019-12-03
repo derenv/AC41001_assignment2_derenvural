@@ -12,8 +12,14 @@ layout(location = 3) in vec4 colour;
 
 //out
 out vert_data{
-	vec4 vert_pos, vert_colour;
-	vec3 vert_normal, light_direction1, light_direction2;
+	vec4 vert_pos;
+	vec3 vert_normal;
+
+	vec2 vert_tex_coord;
+	vec4 vert_colour;
+
+	vec3 light_direction1, light_direction2;
+	vec4[3] light_directions;
 };
 
 //uniforms
@@ -22,10 +28,7 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform mat3 normalmatrix;
 
-uniform vec4 lightpos1;
-uniform vec4 lightpos2;
-
-//uniform float ambient_constant;
+uniform vec4[3] light_positions;
 
 uniform uint colourmode;
 
@@ -47,8 +50,15 @@ void main()
 	vert_normal = normalize(normalmatrix * normal);
 
 	//calculate multiple light source directions
-	light_direction1 = vec3(mv_matrix*(lightpos1 - vert_pos));
-	light_direction2 = vec3(mv_matrix*(lightpos2 - vert_pos));
+	light_direction1 = vec3(mv_matrix*(light_positions[0] - vert_pos));
+	light_direction2 = vec3(mv_matrix*(light_positions[1] - vert_pos));
+	
+	for(int i=0;i<3;i++){
+		light_directions[i] = mv_matrix*(light_positions[i] - vert_pos);
+	}
 
 	gl_Position = (projection * view * model) * position_h;
+
+	// Output the texture coordinates
+	vert_tex_coord = textures.xy;
 }

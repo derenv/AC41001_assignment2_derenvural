@@ -58,7 +58,7 @@ GLfloat light_x, light_y, light_z;
 
 // Application globals
 GLfloat model_scale, aspect_ratio;
-GLuint drawmode, colourmode, emitmode;
+GLuint drawmode, colourmode, emitmode, attenuationmode;
 
 // Object globals
 GLuint numlats, numlongs;
@@ -72,8 +72,8 @@ const char* image_files[texture_amount] = {
 
 // Uniforms IDs
 GLuint modelID[program_amount], viewID[program_amount], projectionID[program_amount], normalmatrixID[program_amount];
-GLuint colourmodeID[program_amount], drawmodeID[program_amount], emitmodeID[program_amount];
-GLuint lightpos1ID[program_amount], lightpos2ID[program_amount], ambient_constantID[program_amount];
+GLuint colourmodeID[program_amount], drawmodeID[program_amount], emitmodeID[program_amount], attenuationmodeID[program_amount];
+GLuint lightposID[program_amount], ambient_constantID[program_amount];
 
 // Programatic objects
 Sphere aSphere;
@@ -205,6 +205,7 @@ void init(GLWrapper* glw)
 	ambient_constant = .2f;
 	colourmode = 1;
 	emitmode = 0;
+	attenuationmode = 1;
 	light_x = light_y = light_z = 1;
 
 	// Object globals
@@ -277,11 +278,12 @@ void init(GLWrapper* glw)
 		colourmodeID[i] = glGetUniformLocation(programs[i], "colourmode");
 
 		if (i < 3) {
+			// Not needed for terrain shader
 			normalmatrixID[i] = glGetUniformLocation(programs[i], "normalmatrix");
-			lightpos1ID[i] = glGetUniformLocation(programs[i], "lightpos1");
-			lightpos2ID[i] = glGetUniformLocation(programs[i], "lightpos2");
+			lightposID[i] = glGetUniformLocation(programs[i], "light_positions");
 			ambient_constantID[i] = glGetUniformLocation(programs[i], "ambient_constant");
 			emitmodeID[i] = glGetUniformLocation(programs[i], "emitmode");
+			attenuationmodeID[i] = glGetUniformLocation(programs[i], "attenuationmode");
 		}
 		// Enable face culling
 		glEnable(GL_CULL_FACE);
@@ -350,29 +352,20 @@ void display() {
 	// Light sources
 	vec4 lightpos1 = view * vec4(light_x, light_y, light_z, 1.0);
 	vec4 lightpos2 = view * vec4(light_x, light_y, light_z, 1.0);
-	vec4 light_positions[1];
+	vec4 the_sun = view * vec4(0.0, 5.0, 0.0, 0.0);
+	vec4 light_positions[3] = { lightpos1, lightpos2, the_sun };
 
+	GLenum uniform_error;
 	// Send our uniforms variables to the currently bound shader
 	glUniformMatrix4fv(viewID[current_program], 1, GL_FALSE, &view[0][0]);
 	glUniformMatrix4fv(projectionID[current_program], 1, GL_FALSE, &projection[0][0]);
-	glUniform4fv(lightpos1ID[current_program], 1, value_ptr(lightpos1));
-	glUniform4fv(lightpos2ID[current_program], 1, value_ptr(lightpos2));
+	glUniform4fv(lightposID[current_program], 2, value_ptr(light_positions[0]));
 	glUniform1ui(colourmodeID[current_program], colourmode);
+	glUniform1ui(colourmodeID[current_program], attenuationmode);
 	glUniform1f(ambient_constantID[current_program], ambient_constant);
 	glFrontFace(GL_CW);
 
-	GLenum uniform_error;
-	while ((uniform_error = glGetError()) != GL_NO_ERROR) {
-		if (uniform_error == GL_INVALID_VALUE) {
-			cerr << "error occurs when passing uniforms: " << uniform_error << " GL_INVALID_VALUE" << endl;
-		}
-		else if (uniform_error == GL_INVALID_OPERATION) {
-			cerr << "error occurs when passing uniforms: " << uniform_error << " GL_INVALID_OPERATION" << endl;
-		}
-		else {
-			cerr << "error occurs when passing uniforms: " << uniform_error << endl;
-		}
-	}
+
 	// Lightsource 1
 	model.push(model.top());
 	{
