@@ -26,7 +26,6 @@ in vert_data{
 	vec2 vert_tex_coord;
 	vec4 vert_colour;
 
-	vec3 light_direction1, light_direction2;
 	vec4[3] light_directions;
 };
 
@@ -40,6 +39,7 @@ int  shininess = 8;
 const float PI = 3.141592653;
 float roughness = 0.5f;
 float F0 = 0.8f;
+float attenuation_k = 1.5;
 
 //uniforms
 uniform uint attenuationmode;
@@ -85,7 +85,7 @@ vec4 CookTorrance(vec4 light_direction){
 		cook_torrance = (beckmann(NdotH) * geometric_shadow(NdotH, NdotV, VdotH, NdotL) * fresnels(VdotH)) / (NdotL * NdotV);
 	}
 	
-	vec3 beta = vec3(1.0,1.0,1.0) / (4.0 * PI * pow(length(light_direction1),2.0));
+	vec3 beta = vec3(1.0,1.0,1.0) / (4.0 * PI * pow(length(light_direction),2.0));
 	float ambient = 0.2;
 	vec3 Kd = vert_colour.xyz;
 	float s = 0.2;
@@ -95,12 +95,9 @@ vec4 CookTorrance(vec4 light_direction){
 }
 
 float calc_attenuation(vec4 light_direction){
-	float attenuation_k1 = 0.5;
-	float attenuation_k2 = 0.5;
-	float attenuation_k3 = 0.5;
 	float distanceToLight = length(light_direction);
 		
-	return 1.0 / (attenuation_k1 + attenuation_k2*distanceToLight + attenuation_k3 * pow(distanceToLight, 2));
+	return 1.0 / (attenuation_k + attenuation_k*distanceToLight + attenuation_k * pow(distanceToLight, 2));
 }
 
 void main()
@@ -118,11 +115,11 @@ void main()
 	// For each light direction
 	for(int i=0;i<3;i++){
 		// Calculate current source
-		vec4 cook_torrance = CookTorrance(light_directions[i]) * vec4(specular_albedo,1.0);
+		vec4 cook_torrance = CookTorrance(light_directions[i]);// * vec4(specular_albedo,1.0);
 	
 		// Calculate the attenuation factor
 		float attenuation;
-		if (attenuationmode != 1 || light_directions[i].w == 0.0)
+		if (attenuationmode != 1 || light_directions[i].w == 0)
 		{
 			attenuation = 1.0;
 		}

@@ -1,5 +1,5 @@
-//fragment shader AC41001 Assignment 1
-//Deren Vural 2/11/2019
+//fragment shader AC41001 Assignment 2
+//Deren Vural 03/12/2019
 //based on initial examples
 
 // Specify minimum OpenGL version
@@ -13,7 +13,6 @@ in vert_data{
 	vec2 vert_tex_coord;
 	vec4 vert_colour;
 
-	vec3 light_direction1, light_direction2;
 	vec4[3] light_directions;
 };
 
@@ -24,7 +23,8 @@ out vec4 outputColor;
 //globals
 vec3 specular_albedo = vec3(1.0, 0.8, 0.6);
 vec4 global_ambient = vec4(0.05, 0.05, 0.05, 1.0);
-int  shininess = 8;
+int shininess = 8;
+float attenuation_k = 0.5;
 
 //uniforms
 uniform uint attenuationmode;
@@ -36,12 +36,9 @@ vec3 calc_diffuse(vec4 light_direction){
 }
 
 float calc_attenuation(vec4 light_direction){
-	float attenuation_k1 = 0.5;
-	float attenuation_k2 = 0.5;
-	float attenuation_k3 = 0.5;
 	float distanceToLight = length(light_direction);
 
-	return 1.0 / (attenuation_k1 + attenuation_k2*distanceToLight + attenuation_k3 * pow(distanceToLight, 2));
+	return 1.0 / (attenuation_k + attenuation_k*distanceToLight + attenuation_k * pow(distanceToLight, 2));
 }
 
 vec3 calc_specular(vec4 light_direction){
@@ -53,13 +50,13 @@ vec3 calc_specular(vec4 light_direction){
 void main()
 {
 	// Ambient
-	vec3 ambient = vert_colour.xyz * ambient_constant;
+	vec4 ambient = vert_colour * ambient_constant;
 
 	// Emissive
 	vec4 emissive = vec4(0);
 	if (emitmode == 1) emissive = vec4(1.0, 1.0, 0.8, 1.0);
 	
-	outputColor = vec4(emissive + global_ambient);
+	outputColor = vec4(ambient + emissive + global_ambient);
 
 	// For each light direction
 	for(int i=0;i<3;i++){
@@ -71,7 +68,7 @@ void main()
 
 		// Calculate attenuation
 		float attenuation;
-		if (attenuationmode != 1 || light_directions[i].w == 0.0)
+		if (attenuationmode != 1 || light_directions[i].w == 0)
 		{
 			attenuation = 1.0;
 		}
@@ -81,7 +78,7 @@ void main()
 		}
 		
 		// Calculate current source
-		vec3 source = attenuation*(ambient + diffuse + specular);
+		vec3 source = attenuation*(diffuse + specular);
 
 		// Add to total lighting
 		outputColor = outputColor + vec4(source, 1);

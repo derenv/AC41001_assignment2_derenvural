@@ -340,14 +340,14 @@ void display() {
 	// Camera matrix
 	mat4 view = lookAt(
 		vec3(view_move_x, view_move_y, view_move_z), // Camera is at (0,0,4), in World Space
-		vec3(x, y, z), // and looks at the origin
+		vec3(x, y, z), // and looks at the object
 		vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
 	);
 
 	// View rotations/transforms
-	view = rotate(view, -radians(view_move_x), vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
-	view = rotate(view, -radians(view_move_y), vec3(0, 1, 0)); //rotating in clockwise direction around y-axis
-	view = rotate(view, -radians(view_move_z), vec3(0, 0, 1));//rotating in clockwise direction around z-axis
+	view = rotate(view, -radians(vx), vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
+	view = rotate(view, -radians(vy), vec3(0, 1, 0)); //rotating in clockwise direction around y-axis
+	view = rotate(view, -radians(vz), vec3(0, 0, 1)); //rotating in clockwise direction around z-axis
 
 	// Light sources
 	vec4 lightpos1 = view * vec4(light_x, light_y, light_z, 1.0);
@@ -455,9 +455,9 @@ void display() {
 
 		// Transformations
 		mat4 new_model = mat4(1.0f);
-		new_model = rotate(new_model, -radians(160.f), vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
-		new_model = rotate(new_model, -radians(0.f), vec3(0, 1, 0)); //rotating in clockwise direction around y-axis
-		new_model = rotate(new_model, -radians(0.f), vec3(0, 0, 1)); //rotating in clockwise direction around z-axis
+		//new_model = rotate(new_model, -radians(160.f), vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
+		//new_model = rotate(new_model, -radians(0.f), vec3(0, 1, 0)); //rotating in clockwise direction around y-axis
+		//new_model = rotate(new_model, -radians(0.f), vec3(0, 0, 1)); //rotating in clockwise direction around z-axis
 
 		// Uniforms
 		glUniformMatrix4fv(modelID[3], 1, GL_FALSE, &(new_model[0][0]));
@@ -525,7 +525,7 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
 
-	//scene rotations
+	//rotate object
 	if (key == 'Q') angle_inc_x -= 0.05f;
 	if (key == 'W') angle_inc_x += 0.05f;
 	if (key == 'E') angle_inc_y -= 0.05f;
@@ -533,17 +533,56 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 	if (key == 'T') angle_inc_z -= 0.05f;
 	if (key == 'Y') angle_inc_z += 0.05f;
 
+	//scale object
 	if (key == 'A') model_scale -= 0.02f;
 	if (key == 'S') model_scale += 0.02f;
 
-	if (key == 'Z') x -= 0.05f;
-	if (key == 'X') x += 0.05f;
-	if (key == 'C') y -= 0.05f;
-	if (key == 'V') y += 0.05f;
-	if (key == 'B') z -= 0.05f;
-	if (key == 'N') z += 0.05f;
+	//move object
+	if (key == 'Z') { x += 0.05f; placeObject = true; }
+	if (key == 'X') { x -= 0.05f; placeObject = true; }
+	//if (key == 'C') y -= 0.05f;
+	//if (key == 'V') y += 0.05f;
+	if (key == 'B') { z += 0.05f; placeObject = true; }
+	if (key == 'N') { z -= 0.05f; placeObject = true; }
 
-	// Object colour or passed colour
+	if (key == GLFW_KEY_7) vx += 1.f;
+	if (key == GLFW_KEY_8) vx -= 1.f;
+	if (key == GLFW_KEY_9) vy += 1.f;
+	if (key == GLFW_KEY_0) vy -= 1.f;
+	if (key == 'O') vz += 1.f;
+	if (key == 'P') vz -= 1.f;
+
+	//object controls
+	if (key == GLFW_KEY_KP_4) view_move_x += 0.05f;
+	if (key == GLFW_KEY_KP_6) view_move_x -= 0.05f;
+	if (key == GLFW_KEY_KP_8) view_move_y += 0.05f;
+	if (key == GLFW_KEY_KP_2) view_move_y -= 0.05f;
+	if (key == GLFW_KEY_KP_0) view_move_z += 0.05f;
+	if (key == GLFW_KEY_KP_5) view_move_z -= 0.05f;
+
+	//light controls
+	if (key == GLFW_KEY_1) light_x -= 0.05f;
+	if (key == GLFW_KEY_2) light_x += 0.05f;
+	if (key == GLFW_KEY_3) light_y -= 0.05f;
+	if (key == GLFW_KEY_4) light_y += 0.05f;
+	if (key == GLFW_KEY_5) light_z -= 0.05f;
+	if (key == GLFW_KEY_6) light_z += 0.05f;
+
+	//reset position
+	if (key == ',' && action != GLFW_PRESS) {
+		view_move_x = 0.f;
+		view_move_y = 0.f;
+		view_move_z = 4.f;
+	}
+	//reset looking at
+	if (key == '.' && action != GLFW_PRESS) {
+		x = 0.f;
+		//y = 0.f;
+		z = 0.f;
+		placeObject = true;
+	}
+
+	// Object colour/texture or passed colour
 	if (key == '=' && action != GLFW_PRESS)
 	{
 		colourmode = !colourmode;
@@ -564,44 +603,6 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 		current_program++;
 		if (current_program > 2) current_program = 0;
 		cout << "current_program=" << current_program << endl;
-	}
-
-	//light controls
-	if (key == GLFW_KEY_1) light_x -= 0.05f;
-	if (key == GLFW_KEY_2) light_x += 0.05f;
-	if (key == GLFW_KEY_3) light_y -= 0.05f;
-	if (key == GLFW_KEY_4) light_y += 0.05f;
-	if (key == GLFW_KEY_5) light_z -= 0.05f;
-	if (key == GLFW_KEY_6) light_z += 0.05f;
-
-	//object controls
-	//looking at
-	if (key == GLFW_KEY_KP_4) { x -= 0.05f; placeObject = true; }
-	if (key == GLFW_KEY_KP_6) { x += 0.05f; placeObject = true; }
-	//if (key == GLFW_KEY_KP_8) { y += 0.05f; cout << "y" << y << endl; }
-	//if (key == GLFW_KEY_KP_2) { y -= 0.05f; cout << "y" << y << endl; }
-	if (key == GLFW_KEY_KP_0) { z += 0.05f; placeObject = true; }
-	if (key == GLFW_KEY_KP_5) { z -= 0.05f; placeObject = true; }
-	//position
-	if (key == 'Z') { view_move_x += 0.05f; }
-	if (key == 'X') { view_move_x -= 0.05f; }
-	if (key == 'C') { view_move_y += 0.05f; }
-	if (key == 'V') { view_move_y -= 0.05f; }
-	if (key == 'B') { view_move_z += 0.05f; }
-	if (key == 'N') { view_move_z -= 0.05f; }
-
-	//reset position
-	if (key == ',' && action != GLFW_PRESS) {
-		view_move_x = 0.f;
-		view_move_y = 0.f;
-		view_move_z = 4.f;
-	}
-	//reset looking at
-	if (key == '.' && action != GLFW_PRESS) {
-		x = 0.f;
-		//y = 0.f;
-		z = 0.f;
-		placeObject = true;
 	}
 
 	// Keep object on the terrain

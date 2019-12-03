@@ -91,12 +91,6 @@ void TinyObjLoader::load_obj(string inputfile, bool debugPrint, bool smoothShade
 	for (size_t s = 0; s < shapes.size(); s++) {
 		numVertices += shapes[s].mesh.num_face_vertices.size() * 3;//3 vertexes for each face
 	}
-	for (size_t t = 0; t < shapes.size(); t++) {
-		for (size_t q = 0; q < shapes.size(); q++) {
-			numTexCoords += shapes[t].mesh.indices[q].texcoord_index;
-			cerr << "numTexCoords: " << shapes[t].mesh.indices[q].texcoord_index << endl;
-		}
-	}
 
 	numNormals = numVertices;
 

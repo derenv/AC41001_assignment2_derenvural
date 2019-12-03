@@ -18,9 +18,21 @@ out vert_data{
 	vec2 vert_tex_coord;
 	vec4 vert_colour;
 
-	vec3 light_direction1, light_direction2;
 	vec4[3] light_directions;
 };
+
+//==TEST==
+//struct light_data{
+//	vec4 light_position;
+//    vec3 colour;
+//	float ambient_coefficient;
+//
+//	float light_attenuation;//for point light
+//	float cone_angle;//for point light
+//	vec3 cone_direction;//for point light
+//};
+//uniform light_data[3] light_directions2;
+//==TEST==
 
 //uniforms
 uniform mat4 model;
@@ -34,29 +46,33 @@ uniform uint colourmode;
 
 void main()
 {
-	//custom colours
+	// Colours & textures
 	if (colourmode == 1){
 		vert_colour = colour;
 	}else{
 		vert_colour = vec4(1.0, 0, 0, 1.0);
 	}
 
-	//homogeneous coords
+	// Homogeneous coords
 	vec4 position_h = vec4(position, 1.0);
 
-	//precalculated lighting vectors
+	// Precalculated lighting vectors
 	mat4 mv_matrix = view * model;
 	vert_pos = mv_matrix * position_h;
 	vert_normal = normalize(normalmatrix * normal);
 
-	//calculate multiple light source directions
-	light_direction1 = vec3(mv_matrix*(light_positions[0] - vert_pos));
-	light_direction2 = vec3(mv_matrix*(light_positions[1] - vert_pos));
-	
+	// Calculate multiple light source directions
 	for(int i=0;i<3;i++){
-		light_directions[i] = mv_matrix*(light_positions[i] - vert_pos);
+		//if(light_positions[i].w == 0){
+			// Directional
+			//light_directions[i] = mv_matrix * light_positions[i];//direction not position so just passed through (normalised in fragment shader)
+		//}else{
+			// Positional - work out direction from position
+			light_directions[i] = mv_matrix * (light_positions[i] - vert_pos);
+		//}
 	}
-
+	
+	// Output the coordinates
 	gl_Position = (projection * view * model) * position_h;
 
 	// Output the texture coordinates

@@ -15,7 +15,6 @@ in vert_data{
 	vec2 vert_tex_coord;
 	vec4 vert_colour;
 
-	vec3 light_direction1, light_direction2;
 	vec4[3] light_directions;
 };
 
@@ -27,6 +26,7 @@ out vec4 outputColor;
 vec4 global_ambient = vec4(0.05, 0.05, 0.05, 1.0);
 const float PI = 3.141592653;
 const float roughness = 0.5;
+float attenuation_k = 0.5;
 
 //uniforms
 uniform uint attenuationmode;
@@ -83,12 +83,9 @@ vec4 calc_oren_nayar(vec4 light_direction, vec4 emissive, vec4 ambient, vec3 nor
 }
 
 float calc_attenuation(vec4 light_direction){
-	float attenuation_k1 = 0.5;
-	float attenuation_k2 = 0.5;
-	float attenuation_k3 = 0.5;
 	float distanceToLight = length(light_direction);
 		
-	return 1.0 / (attenuation_k1 + attenuation_k2*distanceToLight + attenuation_k3 * pow(distanceToLight, 2));
+	return 1.0 / (attenuation_k + attenuation_k*distanceToLight + attenuation_k * pow(distanceToLight, 2));
 }
 
 
@@ -115,7 +112,7 @@ void main()
 	
 		// Calculate the attenuation factor
 		float attenuation;
-		if (attenuationmode != 1 || light_directions[i].w == 0.0)
+		if (attenuationmode != 1 || light_directions[i].w == 0)
 		{
 			attenuation = 1.0;
 		}
