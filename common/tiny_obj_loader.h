@@ -1807,234 +1807,116 @@ std::vector<real_t> smoothNormals(attrib_t attrib, std::vector<shape_t> shapes, 
 		//for each face
 		for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++)
 		{
+			//set up variables
+			tinyobj::index_t idx[3];
+			GLuint x[3];
+			GLuint y[3];
+			GLuint z[3];
+			
+			//get variables
+			for(size_t v=0;v<3;v++){
+				// get indice container for current vertex
+				idx[v] = shapes[s].mesh.indices[index_offset+v];
+				
+				// get position of each vertex in face
+				x[v] = 3 * idx[v].vertex_index + 0;
+				y[v] = 3 * idx[v].vertex_index + 1;
+				z[v] = 3 * idx[v].vertex_index + 2;
+			}
+			
+			//normal
+			glm::vec3 normal = glm::normalize(glm::cross(
+				glm::vec3(attrib.vertices[x[1]], attrib.vertices[y[1]], attrib.vertices[z[1]]) - glm::vec3(attrib.vertices[x[0]], attrib.vertices[y[0]], attrib.vertices[z[0]]),
+				glm::vec3(attrib.vertices[x[2]], attrib.vertices[y[2]], attrib.vertices[z[2]]) - glm::vec3(attrib.vertices[x[0]], attrib.vertices[y[0]], attrib.vertices[z[0]])
+			));
+			
+			// Add to normals
+			for(size_t v=0;v<3;v++){
+				pNormals[x[v]] = pNormals[x[v]] + normal.x;
+				pNormals[y[v]] = pNormals[y[v]] + normal.y;
+				pNormals[z[v]] = pNormals[z[v]] + normal.z;
+			}
+			
 			// get indice container for current vertex
-			tinyobj::index_t idx1 = shapes[s].mesh.indices[index_offset];
-			tinyobj::index_t idx2 = shapes[s].mesh.indices[index_offset + 1];
-			tinyobj::index_t idx3 = shapes[s].mesh.indices[index_offset + 2];
+			//tinyobj::index_t idx1 = shapes[s].mesh.indices[index_offset];
+			//tinyobj::index_t idx2 = shapes[s].mesh.indices[index_offset + 1];
+			//tinyobj::index_t idx3 = shapes[s].mesh.indices[index_offset + 2];
 
 			// get position of each vertex in face
 			// vertex 1
-			GLuint x1 = 3 * idx1.vertex_index + 0;
-			GLuint y1 = 3 * idx1.vertex_index + 1;
-			GLuint z1 = 3 * idx1.vertex_index + 2;
+			//GLuint x1 = 3 * idx1.vertex_index + 0;
+			//GLuint y1 = 3 * idx1.vertex_index + 1;
+			//GLuint z1 = 3 * idx1.vertex_index + 2;
 
 			// vertex 2
-			GLuint x2 = 3 * idx2.vertex_index + 0;
-			GLuint y2 = 3 * idx2.vertex_index + 1;
-			GLuint z2 = 3 * idx2.vertex_index + 2;
+			//GLuint x2 = 3 * idx2.vertex_index + 0;
+			//GLuint y2 = 3 * idx2.vertex_index + 1;
+			//GLuint z2 = 3 * idx2.vertex_index + 2;
 
 			// vertex 3
-			GLuint x3 = 3 * idx3.vertex_index + 0;
-			GLuint y3 = 3 * idx3.vertex_index + 1;
-			GLuint z3 = 3 * idx3.vertex_index + 2;
+			//GLuint x3 = 3 * idx3.vertex_index + 0;
+			//GLuint y3 = 3 * idx3.vertex_index + 1;
+			//GLuint z3 = 3 * idx3.vertex_index + 2;
 
 			//normal
-			glm::vec3 normal = glm::normalize(glm::cross(
-				glm::vec3(attrib.vertices[x2], attrib.vertices[y2], attrib.vertices[z2]) - glm::vec3(attrib.vertices[x1], attrib.vertices[y1], attrib.vertices[z1]),
-				glm::vec3(attrib.vertices[x3], attrib.vertices[y3], attrib.vertices[z3]) - glm::vec3(attrib.vertices[x1], attrib.vertices[y1], attrib.vertices[z1])
-			));
+			//glm::vec3 normal = glm::normalize(glm::cross(
+			//	glm::vec3(attrib.vertices[x2], attrib.vertices[y2], attrib.vertices[z2]) - glm::vec3(attrib.vertices[x1], attrib.vertices[y1], attrib.vertices[z1]),
+			//	glm::vec3(attrib.vertices[x3], attrib.vertices[y3], attrib.vertices[z3]) - glm::vec3(attrib.vertices[x1], attrib.vertices[y1], attrib.vertices[z1])
+			//));
 
-			GLuint cur_v = 0;
-
-			// increment seen values
-			nb_seen[idx1.vertex_index]++;
-			nb_seen[idx2.vertex_index]++;
-			nb_seen[idx3.vertex_index]++;
-
-			// if first time
-			if (nb_seen[idx1.vertex_index] == 1) {
-				//set as normal
-				pNormals[x1] = normal.x;
-				pNormals[y1] = normal.y;
-				pNormals[z1] = normal.z;
-			} else {
-				// if not first time set average
-				// calculate average
-				glm::vec3 average_normal = glm::vec3(
-					pNormals[x1] * (1.f - 1.f / nb_seen[idx1.vertex_index])
-						+ normal.x * 1.f / nb_seen[idx1.vertex_index],
-					pNormals[y1] * (1.f - 1.f / nb_seen[idx1.vertex_index])
-						+ normal.y * 1.f / nb_seen[idx1.vertex_index],
-					pNormals[z1] * (1.f - 1.f / nb_seen[idx1.vertex_index])
-						+ normal.z * 1.f / nb_seen[idx1.vertex_index]
-				);
-
-				// Normalise normals
-				glm::vec3 new_normal = glm::normalize(average_normal);
-
-				// Set final normal
-				pNormals[x1] = new_normal.x;
-				pNormals[y1] = new_normal.y;
-				pNormals[z1] = new_normal.z;
-			}
-
-			// if first time
-			if (nb_seen[idx2.vertex_index] == 1) {
-				//set as normal
-				pNormals[x2] = normal.x;
-				pNormals[y2] = normal.y;
-				pNormals[z2] = normal.z;
-			} else {
-				// if not first time set average
-				// calculate average
-				glm::vec3 average_normal = glm::vec3(
-					pNormals[x2] = pNormals[x2] * (1.f - 1.f / nb_seen[idx2.vertex_index])
-						+ normal.x * 1.f / nb_seen[idx2.vertex_index],
-					pNormals[y2] = pNormals[y2] * (1.f - 1.f / nb_seen[idx2.vertex_index])
-						+ normal.y * 1.f / nb_seen[idx2.vertex_index],
-					pNormals[z2] = pNormals[z2] * (1.f - 1.f / nb_seen[idx2.vertex_index])
-						+ normal.z * 1.f / nb_seen[idx2.vertex_index]
-				);
-
-				// Normalise normals
-				glm::vec3 new_normal = glm::normalize(average_normal);
-
-				// Set final normal
-				pNormals[x2] = new_normal.x;
-				pNormals[y2] = new_normal.y;
-				pNormals[z2] = new_normal.z;
-			}
-
-			// if first time
-			if (nb_seen[idx3.vertex_index] == 1) {
-				//set as normal
-				pNormals[x3] = normal.x;
-				pNormals[y3] = normal.y;
-				pNormals[z3] = normal.z;
-			} else {
-				// if not first time set average
-				// calculate average
-				glm::vec3 average_normal = glm::vec3(
-					pNormals[x3] = pNormals[x3] * (1.f - 1.f / nb_seen[idx3.vertex_index])
-						+ normal.x * 1.f / nb_seen[idx3.vertex_index],
-					pNormals[y3] = pNormals[y3] * (1.f - 1.f / nb_seen[idx3.vertex_index])
-						+ normal.y * 1.f / nb_seen[idx3.vertex_index],
-					pNormals[z3] = pNormals[z3] * (1.f - 1.f / nb_seen[idx3.vertex_index])
-						+ normal.z * 1.f / nb_seen[idx3.vertex_index]
-				);
-
-				// Normalise normals
-				glm::vec3 new_normal = glm::normalize(average_normal);
-
-				// Set final normal
-				pNormals[x3] = new_normal.x;
-				pNormals[y3] = new_normal.y;
-				pNormals[z3] = new_normal.z;
-			}
-
-			// seen(x1)++
-			// if seen(x1) == 1
-			//   FLAT normal
-			// else
-			//   calculate average of x1, x2, x3
-			//	 set x1 to average
-			//
-
-			//for each vertex
-			//for (uint v = 0; v < 9; v+=3) {
-			//	//x=0,y=3,z=6
-			//	int q[3] = {
-			//		x1, //ia
-			//		x2, //ib
-			//		x3 //ic
-			//	};
-
-			//	// current vertex indice
-			//	GLuint cur_v = q[v/3];
-
-			//	// current vertex has been seen (0=unseen, 1=seen, 1+=average)
-			//	nb_seen[cur_v]++;
-
-			//	// if first time
-			//	if (nb_seen[cur_v] == 1) {
-			//		//set as normal
-			//		pNormals[cur_v] = normal.x;
-			//		pNormals[cur_v+1] = normal.y;
-			//		pNormals[cur_v+2] = normal.z;
-			//	} else {
-			//		// if not first time set average
-			//		// calculate average
-			//		real_t qty = pNormals[cur_v] * nb_seen[cur_v] - pNormals[cur_v] + nb_seen[cur_v];
-			//		glm::vec3 average_normal = glm::vec3(
-			//			pNormals[cur_v] * (1.f - 1.f / nb_seen[cur_v]) + normal.x * 1.f / nb_seen[cur_v],
-			//			pNormals[cur_v + 1] * (1.f - 1.f / nb_seen[cur_v]) + normal.y * 1.f / nb_seen[cur_v],
-			//			pNormals[cur_v + 2] * (1.f - 1.f / nb_seen[cur_v]) + normal.z * 1.f / nb_seen[cur_v]
-			//		);
-
-			//		// Normalise
-			//		glm::vec3 new_normal = glm::normalize(average_normal);
-
-			//		// Set final normal
-			//		pNormals[cur_v] = new_normal.x;
-			//		pNormals[cur_v + 1] = new_normal.y;
-			//		pNormals[cur_v + 2] = new_normal.z;
-			//	}
-			//}
+			// Add to 1st normal
+			//pNormals[x1] = pNormals[x1] + normal.x;
+			//pNormals[y1] = pNormals[y1] + normal.y;
+			//pNormals[z1] = pNormals[z1] + normal.z;
+			
+			// Add to 2nd normal
+			//pNormals[x2] = pNormals[x2] + normal.x;
+			//pNormals[y2] = pNormals[y2] + normal.y;
+			//pNormals[z2] = pNormals[z2] + normal.z;
+			
+			// Add to 3rd normal
+			//pNormals[x3] = pNormals[x3] + normal.x;
+			//pNormals[y3] = pNormals[y3] + normal.y;
+			//pNormals[z3] = pNormals[z3] + normal.z;
 		}
 	}
 
+	// for each shape
+	for (size_t s = 0; s < shapes.size(); s++) {
+		//for each face
+		for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++){
+			//set up variables
+			tinyobj::index_t idx[3];
+			GLuint x[3];
+			GLuint y[3];
+			GLuint z[3];
+			
+			//get variables
+			for(size_t v=0;v<3;v++){
+				// get indice container for current vertex
+				idx[v] = shapes[s].mesh.indices[index_offset+v];
+				
+				// get position of each vertex in face
+				x[v] = 3 * idx[v].vertex_index + 0;
+				y[v] = 3 * idx[v].vertex_index + 1;
+				z[v] = 3 * idx[v].vertex_index + 2;
+			
+			
+				// Get new normal
+				glm::vec3 average_normal = (pNormals[x[v]], pNormals[y[v]], pNormals[z[v]]);
+
+				// Normalise normals
+				glm::vec3 new_normal = glm::normalize(average_normal);
+
+				// Set final normal
+				pNormals[x[v]] = new_normal.x;
+				pNormals[y[v]] = new_normal.y;
+				pNormals[z[v]] = new_normal.z;
+			}
+		}
+	}
+	
 	return pNormals;
-
-
-
-	//// Work out size
-	//GLuint numVertices = attrib->vertices.size();
-
-	//std::vector<GLuint> nb_seen;
-	//nb_seen.resize(numVertices, 0);
-
-	//// Initialise normal vector at correct size
-	//attrib->normals.resize(numVertices, 0.f);
-
-	///*std::vector<glm::vec3> test_normals;
-	//std::vector<glm::vec3> test_vectors;
-	//std::vector<GLuint> elements;
-	//test_normals.resize(numVertices / 3, glm::vec3(0.0, 0.0, 0.0));
-	//test_vectors.resize(numVertices / 3, glm::vec3(0.0, 0.0, 0.0));*/
-	//
-	//// For each face
-	//for (GLuint i = 0; i < (numVertices - 9); i += 9) {
-	//	// Each vertex index
-	//	int v[3] = { i, i + 3, i + 6 };
-
-	//	// Calculate normal for face
-	//	glm::vec3 normal = normalize(cross(
-	//		glm::vec3(attrib->vertices[v[1]], attrib->vertices[v[1]+1], attrib->vertices[v[1]+2]) - glm::vec3(attrib->vertices[v[0]], attrib->vertices[v[0]+1], attrib->vertices[v[0]+2]),
-	//		glm::vec3(attrib->vertices[v[2]], attrib->vertices[v[2]+1], attrib->vertices[v[2]+2]) - glm::vec3(attrib->vertices[v[0]], attrib->vertices[v[0]+1], attrib->vertices[v[0]+2]))
-	//	);
-
-	//	// For each vertex
-	//	for (int j = 0; j < 3; j++) {
-	//		// Set current vertex
-	//		GLuint cur_v = v[j];
-
-	//		nb_seen[cur_v]++;
-	//		nb_seen[cur_v+1]++;
-	//		nb_seen[cur_v+2]++;
-
-	//		if (nb_seen[cur_v] == 1) {
-	//			// Set normal
-	//			attrib->normals[cur_v] = normal.x;
-	//			attrib->normals[cur_v + 1] = normal.y;
-	//			attrib->normals[cur_v + 2] = normal.z;
-	//		} else {
-	//			// Set average normal
-	//			glm::vec3 average_normal = glm::vec3(
-	//				attrib->normals[cur_v] * (1.f - 1.f / nb_seen[cur_v]) + normal.x * 1.f / nb_seen[cur_v],     //x
-	//				attrib->normals[cur_v + 1] * (1.f - 1.f / nb_seen[cur_v+1]) + normal.y * 1.f / nb_seen[cur_v+1], //y
-	//				attrib->normals[cur_v + 2] * (1.f - 1.f / nb_seen[cur_v+2]) + normal.z * 1.f / nb_seen[cur_v+2] //z
-	//			);
-
-	//			// Normalise normals
-	//			glm::vec3 new_normal = glm::normalize(average_normal);
-
-	//			// Set final normal
-	//			attrib->normals[cur_v] = new_normal.x;
-	//			attrib->normals[cur_v + 1] = new_normal.y;
-	//			attrib->normals[cur_v + 2] = new_normal.z;
-	//		}
-	//	}
-	//}
 }
 
 bool LoadObj(attrib_t *attrib, std::vector<shape_t> *shapes,
