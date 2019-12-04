@@ -9,9 +9,15 @@
 
 //in
 in vert_data{
-	vec4 vert_pos, vert_colour;
-	vec3 vert_normal, light_direction1, light_direction2;
+	vec4 vert_pos;
+	vec3 vert_normal;
+
+	vec2 vert_tex_coord;
+	vec4 vert_colour;
+
+	vec4[3] light_directions;
 };
+
 
 //out
 out vec4 outputColor;
@@ -20,15 +26,16 @@ out vec4 outputColor;
 vec4 global_ambient = vec4(0.05, 0.05, 0.05, 1.0);
 const float PI = 3.141592653;
 const float roughness = 0.5;
+float attenuation_k = 0.5;
 
 //uniforms
 uniform uint attenuationmode;
 uniform uint emitmode;
 uniform float ambient_constant;
 
-vec4 calc_oren_nayar(vec3 light_direction, vec4 emissive, vec4 ambient, vec3 normal, vec3 view_dir){
+vec4 calc_oren_nayar(vec4 light_direction, vec4 emissive, vec4 ambient, vec3 normal, vec3 view_dir){
 	//calculate light info
-    vec3 light_dir = normalize(light_direction);
+    vec3 light_dir = normalize(light_direction.xyz);
 	
 	// Calculate these dot products which are used in the Oren Nayar equations below
     float NdotL = dot(normal, light_dir);
@@ -75,44 +82,49 @@ vec4 calc_oren_nayar(vec3 light_direction, vec4 emissive, vec4 ambient, vec3 nor
 	return oren_nayar;
 }
 
+float calc_attenuation(vec4 light_direction){
+	float distanceToLight = length(light_direction);
+		
+	return 1.0 / (attenuation_k + attenuation_k*distanceToLight + attenuation_k * pow(distanceToLight, 2));
+}
+
+
 void main()
 {
-	vec4 emissive = vec4(0);
-	// If emitmode is 1 then we enable emmissive lighting
-	if (emitmode == 1) emissive = vec4(1.0, 1.0, 0.8, 1.0);
+	// Ambient
 	vec4 ambient = vert_colour * ambient_constant;
+
+	// Emissive
+	vec4 emissive = vec4(0);
+	if (emitmode == 1) emissive = vec4(1.0, 1.0, 0.8, 1.0);
 	
 	// Normalise our input vectors, these may be the same for other BRDFs
 	vec3 normal = normalize(vert_normal);
     vec3 view_dir = normalize(-vert_pos.xyz);
 
-	//calculate colour for each light
-	vec4 oren_nayar1 = calc_oren_nayar(light_direction1, emissive, ambient, normal, view_dir);
-	vec4 oren_nayar2 = calc_oren_nayar(light_direction2, emissive, ambient, normal, view_dir);
+	// Initialise output
+	outputColor = vec4(emissive + global_ambient);
 	
-	// Calculate the attenuation factor;
-	// Turn off attenuation if attenuationmode is not set to 1 (on)
-	float distancetolight1 = length(light_direction1);
-	float distancetolight2 = length(light_direction2);
-	float attenuation1;
-	float attenuation2;
-	if (attenuationmode != 1)
-	{
-		attenuation1 = attenuation2 = 1.0;
-	}
-	else
-	{
-		// Define attenuation constants. These could be uniforms for greater flexibility
-		float attenuation_k1 = 0.5;
-		float attenuation_k2 = 0.5;
-		float attenuation_k3 = 0.5;
-		attenuation1 = 1.0 / (attenuation_k1 + attenuation_k2*distancetolight1 + attenuation_k3 * pow(distancetolight1, 2));
-		attenuation2 = 1.0 / (attenuation_k1 + attenuation_k2*distancetolight2 + attenuation_k3 * pow(distancetolight2, 2));
-	}
+	// For each light direction
+	for(int i=0;i<3;i++){
+		// Calculate current source
+		vec4 oren_nayar = calc_oren_nayar(light_directions[i], emissive, ambient, normal, view_dir);
 	
-	// Calculate the output colour, includung attenuation on the diffuse and specular components
-	// Note that you may want to exclude the ambient from the attenuation factor so objects
-	// are always visible, or include a global ambient
-	outputColor = attenuation1*(ambient + oren_nayar1) + attenuation2*(ambient + oren_nayar2) + emissive + global_ambient;
+		// Calculate the attenuation factor
+		float attenuation;
+		if (attenuationmode != 1 || light_directions[i].w == 0)
+		{
+			attenuation = 1.0;
+		}
+		else
+		{
+			attenuation = calc_attenuation(light_directions[i]);
+		}
+	
+		// Calculate current source
+		vec4 source = attenuation * oren_nayar;
 
+		// Add to total lighting
+		outputColor = outputColor + source;
+	}
 }
