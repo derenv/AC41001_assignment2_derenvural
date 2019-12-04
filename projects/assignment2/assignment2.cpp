@@ -35,7 +35,7 @@ Deren Vural November 2019
 // Array size
 const int program_amount = 4;
 const int texture_amount = 2;
-const int object_files_amount = 5;
+const int object_files_amount = 6;
 
 // Shader variables
 GLuint programs[program_amount];
@@ -85,7 +85,8 @@ const char* objects[object_files_amount] = {
 	"..\\..\\objects\\monkey_normals.obj",
 	"..\\..\\objects\\sofa.obj",
 	"..\\..\\objects\\windmill.obj",
-	"..\\..\\objects\\test1.obj"
+	"..\\..\\objects\\castle_tex.obj"
+	"..\\..\\objects\\Tower-house_Blender_Game_Engine.obj"
 };
 
 // Terrain objects
@@ -181,6 +182,13 @@ bool load_texture(const char* filename, GLuint& texID, bool bGenMipmaps){
 	return true;
 }
 
+
+void get_terrain_position(terrain_object* heightfield);
+void get_terrain_position(terrain_object* heightfield) {
+	//	vec2 pos = heightfield->getGridPos(x, z);
+	y = heightfield->heightAtPosition(-x, -z);
+}
+
 /*
 initialisation stuff
 */
@@ -194,7 +202,7 @@ void init(GLWrapper* glw)
 	angle_y = angle_z = 0;
 	angle_x = 295.f;
 	angle_inc_x = angle_inc_y = angle_inc_z = 0;
-	view_move_x = view_move_y = 0; view_move_z = 4;
+	view_move_x = 0; view_move_y = 4; view_move_z = 4;
 	vx = 330.f; vy = 0; vz = 0;
 
 	// Application globals
@@ -204,6 +212,7 @@ void init(GLWrapper* glw)
 	// Lighting globals
 	ambient_constant = .2f;
 	colourmode = 1;
+	drawmode = 0;
 	emitmode = 0;
 	attenuationmode = 1;
 	light_x = light_y = light_z = 1;
@@ -215,17 +224,6 @@ void init(GLWrapper* glw)
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
-	//terrain object
-	octaves = 4;
-	perlin_scale = 2.f;
-	perlin_frequency = 1.f;
-	land_size = 2.f;
-	land_resolution = 500;
-	heightfield = new terrain_object(octaves, perlin_frequency, perlin_scale);
-	heightfield->createTerrain(land_resolution, land_resolution, land_size, land_size, sealevel);
-	heightfield->setColourBasedOnHeight();
-	heightfield->createObject();
-
 	// Load and build all file dependancies
 	try{
 		//shaders
@@ -236,7 +234,7 @@ void init(GLWrapper* glw)
 		programs[3] = glw->LoadShader("..\\..\\shaders\\terrain.vert", "..\\..\\shaders\\terrain.frag");
 
 		//wavefront .obj objects
-		//0-monkey(V--), 1-monkey_normals(V-N), 2-sofa(V-N), 3-windmill1(VTN), 4-cube1(VTN)
+		//0-monkey(V--), 1-monkey_normals(V-N), 2-sofa(V-N), 3-windmill1(VTN), 4-castle(VTN), 5-towerhouse(VTN)
 		someObject.load_obj(objects[0], false, true);
 	}catch (exception & e){
 		cout << "Caught exception: " << e.what() << endl;
@@ -277,14 +275,15 @@ void init(GLWrapper* glw)
 		projectionID[i] = glGetUniformLocation(programs[i], "projection");
 		colourmodeID[i] = glGetUniformLocation(programs[i], "colourmode");
 
+		// Not needed for terrain shader
 		if (i < 3) {
-			// Not needed for terrain shader
 			normalmatrixID[i] = glGetUniformLocation(programs[i], "normalmatrix");
 			lightposID[i] = glGetUniformLocation(programs[i], "light_positions");
 			ambient_constantID[i] = glGetUniformLocation(programs[i], "ambient_constant");
 			emitmodeID[i] = glGetUniformLocation(programs[i], "emitmode");
 			attenuationmodeID[i] = glGetUniformLocation(programs[i], "attenuationmode");
 		}
+
 		// Enable face culling
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
@@ -294,12 +293,24 @@ void init(GLWrapper* glw)
 		if (loc >= 0) { glUniform1i(loc, 0); }
 	}
 
+	//terrain object
+	octaves = 4;
+	perlin_scale = 2.f;
+	perlin_frequency = 1.f;
+	land_size = 10.f;
+	land_resolution = 1000;
+	heightfield = new terrain_object(octaves, perlin_frequency, perlin_scale);
+	heightfield->createTerrain(land_resolution, land_resolution, land_size, land_size, sealevel);
+	heightfield->setColourBasedOnHeight();
+	heightfield->createObject();
+	glBindVertexArray(vao);
+	current_program = 0;
+
 	// Create programatic objects
 	aSphere.makeSphere(numlats, numlongs);
 
-	// Define initial object positionsa
-	vec2 pos = heightfield->getGridPos(x, z);
-	y = heightfield->heightAtPosition(x, z);
+	// Define initial object positions
+	get_terrain_position(heightfield);
 
 	//error check
 	for (int i = 0; i < program_amount; i++)
@@ -340,7 +351,7 @@ void display() {
 	// Camera matrix
 	mat4 view = lookAt(
 		vec3(view_move_x, view_move_y, view_move_z), // Camera is at (0,0,4), in World Space
-		vec3(x, y, z), // and looks at the object
+		vec3(x, y + .2f, z), // and looks at the object
 		vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
 	);
 
@@ -355,7 +366,6 @@ void display() {
 	vec4 the_sun = view * vec4(0.0, 5.0, 0.0, 0.0);
 	vec4 light_positions[3] = { lightpos1, lightpos2, the_sun };
 
-	GLenum uniform_error;
 	// Send our uniforms variables to the currently bound shader
 	glUniformMatrix4fv(viewID[current_program], 1, GL_FALSE, &view[0][0]);
 	glUniformMatrix4fv(projectionID[current_program], 1, GL_FALSE, &projection[0][0]);
@@ -364,6 +374,19 @@ void display() {
 	glUniform1ui(colourmodeID[current_program], attenuationmode);
 	glUniform1f(ambient_constantID[current_program], ambient_constant);
 	glFrontFace(GL_CW);
+
+	GLenum uniform_error;
+	while ((uniform_error = glGetError()) != GL_NO_ERROR) {
+		if (uniform_error == GL_INVALID_VALUE) {
+			cerr << "error occurs when passing uniforms: " << uniform_error << " GL_INVALID_VALUE" << endl;
+		}
+		else if (uniform_error == GL_INVALID_OPERATION) {
+			cerr << "error occurs when passing uniforms: " << uniform_error << " GL_INVALID_OPERATION" << endl;
+		}
+		else {
+			cerr << "error occurs when passing uniforms: " << uniform_error << endl;
+		}
+	}
 
 
 	// Lightsource 1
@@ -408,7 +431,7 @@ void display() {
 	}
 
 	// Global transformations
-	model.top() = translate(model.top(), vec3(x, y + .1f, z));
+	model.top() = translate(model.top(), vec3(x, y+.2f, z));
 	//model.top() = scale(model.top(), vec3(model_scale, model_scale, model_scale));//scale equally in all axis
 	model.top() = rotate(model.top(), -radians(angle_x - 50.f), vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
 	model.top() = rotate(model.top(), -radians(angle_y), vec3(0, 1, 0)); //rotating in clockwise direction around y-axis
@@ -433,7 +456,7 @@ void display() {
 	{
 		// Transformations
 		//model.top() = translate(model.top(), vec3(x, y+0.2, z));
-		model.top() = scale(model.top(), vec3(.1f, .1f, .1f));//scale equally in all axis
+		model.top() = scale(model.top(), vec3(1.f, 1.f, 1.f));//scale equally in all axis
 
 		// Uniforms
 		glUniformMatrix4fv(modelID[current_program], 1, GL_FALSE, &(model.top()[0][0]));
@@ -451,13 +474,11 @@ void display() {
 
 	// Terrain
 	{
+		// switch to terrain program
 		glUseProgram(programs[3]);
 
 		// Transformations
 		mat4 new_model = mat4(1.0f);
-		//new_model = rotate(new_model, -radians(160.f), vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
-		//new_model = rotate(new_model, -radians(0.f), vec3(0, 1, 0)); //rotating in clockwise direction around y-axis
-		//new_model = rotate(new_model, -radians(0.f), vec3(0, 0, 1)); //rotating in clockwise direction around z-axis
 
 		// Uniforms
 		glUniformMatrix4fv(modelID[3], 1, GL_FALSE, &(new_model[0][0]));
@@ -467,6 +488,8 @@ void display() {
 
 		// Draw terrain
 		heightfield->drawObject(drawmode);
+
+		// switch to objects program
 		glUseProgram(programs[current_program]);
 	}
 
@@ -545,10 +568,10 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 	if (key == 'B') { z += 0.05f; placeObject = true; }
 	if (key == 'N') { z -= 0.05f; placeObject = true; }
 
-	if (key == GLFW_KEY_7) vx += 1.f;
-	if (key == GLFW_KEY_8) vx -= 1.f;
-	if (key == GLFW_KEY_9) vy += 1.f;
-	if (key == GLFW_KEY_0) vy -= 1.f;
+	if (key == 'J') vx += 1.f;
+	if (key == 'K') vx -= 1.f;
+	if (key == 'U') vy += 1.f;
+	if (key == 'I') vy -= 1.f;
 	if (key == 'O') vz += 1.f;
 	if (key == 'P') vz -= 1.f;
 
@@ -608,11 +631,7 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 	// Keep object on the terrain
 	if (placeObject)
 	{
-		// Debug to output grid position of object
-		vec2 pos = heightfield->getGridPos(x, z);
-
-		// Set the object height form the grid position
-		y = heightfield->heightAtPosition(x, z);
+		get_terrain_position(heightfield);
 	}
 
 	if (recreate_terrain)

@@ -92,7 +92,7 @@ void TinyObjLoader::load_obj(string inputfile, bool debugPrint, bool smoothShade
 		numVertices += shapes[s].mesh.num_face_vertices.size() * 3;//3 vertexes for each face
 	}
 
-	numNormals = numVertices;
+	numNormals = numTexCoords = numVertices;
 
 	//have to duplicate vertices (glDrawElements not possible) because of texture
 	std::vector<tinyobj::real_t> pVertices(numVertices * 3);
@@ -167,6 +167,17 @@ void TinyObjLoader::load_obj(string inputfile, bool debugPrint, bool smoothShade
 	glBufferData(GL_ARRAY_BUFFER, pTextureCoords.size() * sizeof(tinyobj::real_t), &pTextureCoords.front(), GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+	//Material Properties
+	//ambient (Ka)
+	//diffuse (Kd)
+	//specular (Ks)
+	//emission (Ke)
+	//shininess (Ns)
+	
+	//ior(index of refraction) (Ni)
+	//dissolve (d)
+	//illum model (illum)
+
 	// set colours if valid, otherwise textures will be used
 	if (use_colours) {
 		overrideColour(vec4(0.f, 0.f, 1.f, 1.f));
@@ -203,7 +214,7 @@ void TinyObjLoader::drawObject(int drawmode)
 
 	/* Draw the object as GL_POINTS */
 	glBindBuffer(GL_ARRAY_BUFFER, positionBufferObject);
-	glVertexAttribPointer(attribute_v_coord, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(attribute_v_coord, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 	glEnableVertexAttribArray(attribute_v_coord);
 
 	/* Bind the object normals */
@@ -212,14 +223,14 @@ void TinyObjLoader::drawObject(int drawmode)
 	glEnableVertexAttribArray(attribute_v_normal);
 
 	/* Bind the object texture coords if they exist */
-	glEnableVertexAttribArray(attribute_v_texcoord);
 	glBindBuffer(GL_ARRAY_BUFFER, texCoordsObject);
 	glVertexAttribPointer(attribute_v_texcoord, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	glEnableVertexAttribArray(attribute_v_texcoord);
 
 	/* Bind the object colourss if they exist */
-	glEnableVertexAttribArray(attribute_v_colours);
 	glBindBuffer(GL_ARRAY_BUFFER, colourBufferObject);
 	glVertexAttribPointer(attribute_v_colours, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	glEnableVertexAttribArray(attribute_v_colours);
 
 	glPointSize(3.f);
 
