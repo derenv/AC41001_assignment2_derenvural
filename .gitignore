@@ -4,3 +4,5 @@ x64
 projects/assignment2/x64
 projects/assignment2/Debug
 projects/assignment2/Release
+images/unused/*
+images/JPG/*

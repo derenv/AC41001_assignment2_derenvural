@@ -26,16 +26,19 @@ private:
 	GLuint positionBufferObject;
 	GLuint normalBufferObject;
 	GLuint texCoordsObject;
-	GLuint colourBufferObject;
 
 	GLuint attribute_v_coord;
 	GLuint attribute_v_normal;
-	GLuint attribute_v_colours;
 	GLuint attribute_v_texcoord;
 
 	int drawmode;
 	GLuint numVertices;
 	GLuint numNormals;
-	GLuint numColours;
 	GLint  numTexCoords;
+
+	// for use when no texture provided
+	bool use_colours;
+	GLuint colourBufferObject;
+	GLuint attribute_v_colours;
+	GLuint numColours;
 };

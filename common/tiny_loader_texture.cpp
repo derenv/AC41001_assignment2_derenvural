@@ -71,7 +71,6 @@ void TinyObjLoader::load_obj(string inputfile, bool debugPrint, bool smoothShade
 	}
 
 	// texture coords sanity checks
-	bool use_colours = false;
 	if (attrib.texcoords.size() <= 0) {
 		//no texture coordinates present
 		cerr << "No texture coordinates present in file: " << inputfile << endl;
@@ -79,7 +78,6 @@ void TinyObjLoader::load_obj(string inputfile, bool debugPrint, bool smoothShade
 		if (attrib.colors.size() > 0) {
 			//no texture coordinates present
 			cerr << "Using colour values instead.." << endl;
-			use_colours = true;
 		} else {
 			cerr << "No colour values present in file: " << inputfile << endl;
 			exit(1);
@@ -138,6 +136,10 @@ void TinyObjLoader::load_obj(string inputfile, bool debugPrint, bool smoothShade
 				if (idx.texcoord_index != -1) {
 					pTextureCoords[ind * 2 + 0] = attrib.texcoords[2 * idx.texcoord_index + 0];//x
 					pTextureCoords[ind * 2 + 1] = attrib.texcoords[2 * idx.texcoord_index + 1];//y
+				} else {
+					//if not present enter placeholder
+					pTextureCoords[ind * 2 + 0] = 0;//x
+					pTextureCoords[ind * 2 + 1] = 0;//y
 				}
 
 				// Get normal values
@@ -167,21 +169,22 @@ void TinyObjLoader::load_obj(string inputfile, bool debugPrint, bool smoothShade
 	glBufferData(GL_ARRAY_BUFFER, pTextureCoords.size() * sizeof(tinyobj::real_t), &pTextureCoords.front(), GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	//Material Properties
-	//ambient (Ka)
-	//diffuse (Kd)
-	//specular (Ks)
-	//emission (Ke)
-	//shininess (Ns)
-	
-	//ior(index of refraction) (Ni)
-	//dissolve (d)
-	//illum model (illum)
 
 	// set colours if valid, otherwise textures will be used
-	if (use_colours) {
-		overrideColour(vec4(0.f, 0.f, 1.f, 1.f));
-	}
+	//if (use_colours) {
+	overrideColour(vec4(0.f, 0.f, 1.f, 1.f));
+	//}//else{
+		//Material Properties
+		//ambient (Ka)
+		//diffuse (Kd)
+		//specular (Ks)
+		//emission (Ke)
+		//shininess (Ns)
+	
+		//ior(index of refraction) (Ni)
+		//dissolve (d)
+		//illum model (illum)
+	//}
 
 	if(debugPrint){ PrintInfo(attrib, shapes, materials); }
 }
@@ -211,26 +214,27 @@ void TinyObjLoader::overrideColour(glm::vec4 c)
 
 void TinyObjLoader::drawObject(int drawmode)
 {
-
-	/* Draw the object as GL_POINTS */
-	glBindBuffer(GL_ARRAY_BUFFER, positionBufferObject);
-	glVertexAttribPointer(attribute_v_coord, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	// Draw the object as GL_POINTS
 	glEnableVertexAttribArray(attribute_v_coord);
+	glBindBuffer(GL_ARRAY_BUFFER, positionBufferObject);
+	glVertexAttribPointer(attribute_v_coord, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-	/* Bind the object normals */
+	// Bind the object normals
+	glEnableVertexAttribArray(attribute_v_normal);
 	glBindBuffer(GL_ARRAY_BUFFER, normalBufferObject);
 	glVertexAttribPointer(attribute_v_normal, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-	glEnableVertexAttribArray(attribute_v_normal);
 
-	/* Bind the object texture coords if they exist */
+	// Bind the object texture coords if they exist (otherwise use texture)
+	glEnableVertexAttribArray(attribute_v_texcoord);
 	glBindBuffer(GL_ARRAY_BUFFER, texCoordsObject);
 	glVertexAttribPointer(attribute_v_texcoord, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-	glEnableVertexAttribArray(attribute_v_texcoord);
 
-	/* Bind the object colourss if they exist */
-	glBindBuffer(GL_ARRAY_BUFFER, colourBufferObject);
-	glVertexAttribPointer(attribute_v_colours, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-	glEnableVertexAttribArray(attribute_v_colours);
+	// Bind the object colours if they exist (otherwise use texture)
+	if (use_colours) {
+		glEnableVertexAttribArray(attribute_v_colours);
+		glBindBuffer(GL_ARRAY_BUFFER, colourBufferObject);
+		glVertexAttribPointer(attribute_v_colours, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	}
 
 	glPointSize(3.f);
 

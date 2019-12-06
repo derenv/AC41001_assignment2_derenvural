@@ -79,6 +79,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <ExceptionHandling>Async</ExceptionHandling>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -132,6 +133,7 @@
     <ClCompile Include="..\..\common\tiny_loader_texture.cpp" />
     <ClCompile Include="..\..\common\wrapper_glfw.cpp" />
     <ClCompile Include="assignment2.cpp" />
+    <ClCompile Include="ltree.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\shaders\assignment2.vert" />

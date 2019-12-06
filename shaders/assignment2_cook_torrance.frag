@@ -3,16 +3,6 @@ fragment shader AC41001 Assignment 2
 Deren Vural 03/12/2019
 equation from: https://graphicrants.blogspot.com/2013/08/specular-brdf-reference.html
 method from: https://stackoverflow.com/questions/24096041/how-to-properly-implement-cook-torrance-shading-in-three-js
-
-Cook-Torrance Equation:
-f(1,v) = D(h)F(v,h)G(l,v,h)
-				/
-			4(n.l)(n.v)
-(where alpha = roughness^2)
-
-D[Bekmann](m) = (alpha^2 / (PI * alpha^2 * (n.m)^4)) * exp[((n.m^2 - 1) / alpha^2 * (n.m)^2)]
-G[cook-torrance](l,v,h) = min[1,(2(n.h)(n.v)/v.h),(2(n.h)(n.l)/v.h)]
-F[cook-torrance](v,h) = (1/2) * ((g-c)/(g+c))^2 * (1+((g+c)*c - 1 / (g-c)c + 1)^2)
 */
 
 // Specify minimum OpenGL version
@@ -35,7 +25,7 @@ out vec4 outputColor;
 //globals
 vec4 global_ambient = vec4(0.05, 0.05, 0.05, 1.0);
 vec3 specular_albedo = vec3(.5, .5, .5);
-int  shininess = 8;
+int shininess = 8;
 const float PI = 3.141592653;
 float roughness = 0.5f;
 float F0 = 0.8f;
@@ -45,6 +35,8 @@ float attenuation_k = 1.5;
 uniform uint attenuationmode;
 uniform uint emitmode;
 uniform float ambient_constant;
+
+uniform sampler2D tex1;
 
 // Microfacet Distribution (by beckmann)
 float beckmann(float NdotH){
@@ -130,8 +122,11 @@ void main()
 	
 		// Calculate current source
 		vec4 source = attenuation * (ambient + cook_torrance);
+		
+		// Load texture using sample
+		vec4 texcolour = texture(tex1, vert_tex_coord);
 
 		// Add to total lighting
-		outputColor = outputColor + source;
+		outputColor = (outputColor + source) * texcolour;
 	}
 }

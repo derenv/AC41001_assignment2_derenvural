@@ -201,8 +201,8 @@ void terrain_object::createTerrain(GLuint xp, GLuint zp, GLfloat xs, GLfloat zs,
 	calculateNoise();
 
 	/* Define starting (x,z) positions and the step changes */
-	GLfloat xpos = width / 2.f;
-	GLfloat xpos_step = -width / GLfloat(xp);
+	GLfloat xpos = -width / 2.f;
+	GLfloat xpos_step = width / GLfloat(xp);
 	GLfloat zpos_step = height / GLfloat(zp);
 	GLfloat zpos_start = -height / 2.f;
 
