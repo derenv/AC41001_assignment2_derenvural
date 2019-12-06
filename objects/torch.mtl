@@ -1,0 +1,25 @@
+# Blender MTL File: 'torch.blend'
+# Material Count: 2
+
+newmtl Metal
+Ns 81.000006
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.000000 0.000000 0.000000
+Ke 0.0 0.0 0.0
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd C:\\Users\\Deren\\Documents\\Visual Studio 2019\\Projects\\assignment2_derenvural\\images\\rusty_iron.jpg
+map_d C:\\Users\\Deren\\Documents\\Visual Studio 2019\\Projects\\assignment2_derenvural\\images\\rusty_iron.jpg
+
+newmtl Wood
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.000000 0.000000 0.000000
+Ke 0.0 0.0 0.0
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd C:\\Users\\Deren\\Documents\\Visual Studio 2019\\Projects\\assignment2_derenvural\\images\\bark1.png

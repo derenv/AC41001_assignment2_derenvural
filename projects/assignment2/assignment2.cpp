@@ -34,8 +34,8 @@ Deren Vural November 2019
 
 // Array size
 const int program_amount = 4;
-const int texture_amount = 2;
-const int object_files_amount = 6;
+const int texture_amount = 9;
+const int object_files_amount = 8;
 
 // Shader variables
 GLuint programs[program_amount];
@@ -66,8 +66,21 @@ GLuint numlats, numlongs;
 // Textures
 GLuint textureID[texture_amount];
 const char* image_files[texture_amount] = {
-	"..\\..\\images\\grass.jpg",
-	"..\\..\\images\\earth_no_clouds.jpg"
+	////WINDMILL
+	"..\\..\\images\\concrete.jpg",
+	"..\\..\\images\\planks2.jpg",
+	"..\\..\\images\\rusty_iron.jpg",//also torch
+	//WINDMILL BLADES
+	//CASTLE
+	"..\\..\\images\\planks1.ppg",
+	"..\\..\\images\\diffuse.ppg",
+	"..\\..\\images\\normal.ppg",
+	//DOOR
+	"..\\..\\images\\doorold.jpg",
+	//TORCH
+	"..\\..\\images\\bark1.png",
+	//TOWER
+	"..\\..\\images\\Medieval tower_mid_Col.png"
 };
 
 // Uniforms IDs
@@ -79,14 +92,20 @@ GLuint lightposID[program_amount], ambient_constantID[program_amount];
 Sphere aSphere;
 
 // Wavefront .obj objects
+TinyObjLoader castle;
+TinyObjLoader windmill;
+TinyObjLoader torch;
+TinyObjLoader door;
 TinyObjLoader someObject;
 const char* objects[object_files_amount] = {
 	"..\\..\\objects\\monkey.obj",
 	"..\\..\\objects\\monkey_normals.obj",
 	"..\\..\\objects\\sofa.obj",
 	"..\\..\\objects\\windmill.obj",
-	"..\\..\\objects\\castle_tex.obj"
-	"..\\..\\objects\\Tower-house_Blender_Game_Engine.obj"
+	"..\\..\\objects\\castle_tex.obj",
+	"..\\..\\objects\\Medieval_tower_High_.obj",
+	"..\\..\\objects\\torch.obj",
+	"..\\..\\objects\\door.obj"
 };
 
 // Terrain objects
@@ -183,10 +202,10 @@ bool load_texture(const char* filename, GLuint& texID, bool bGenMipmaps){
 }
 
 
-void get_terrain_position(terrain_object* heightfield);
-void get_terrain_position(terrain_object* heightfield) {
+float get_terrain_position(terrain_object* heightfield, float xval, float zval);
+float get_terrain_position(terrain_object* heightfield, float xval, float zval) {
 	//	vec2 pos = heightfield->getGridPos(x, z);
-	y = heightfield->heightAtPosition(-x, -z);
+	return heightfield->heightAtPosition(xval, zval);
 }
 
 /*
@@ -196,14 +215,14 @@ void init(GLWrapper* glw)
 {
 	// Initial variable values
 	// Position and view globals
-	x = 0;
-	y = 0;
-	z = 0;
 	angle_y = angle_z = 0;
 	angle_x = 295.f;
 	angle_inc_x = angle_inc_y = angle_inc_z = 0;
-	view_move_x = 0; view_move_y = 4; view_move_z = 4;
-	vx = 330.f; vy = 0; vz = 0;
+	vx = 0; vy = 0; vz = 0;
+
+	//view position
+	view_move_x = -10.3; view_move_y = 1.8; view_move_z = 3;
+	x = -10.3; y = 1.8; z = 4;
 
 	// Application globals
 	model_scale = .1f;
@@ -234,8 +253,13 @@ void init(GLWrapper* glw)
 		programs[3] = glw->LoadShader("..\\..\\shaders\\terrain.vert", "..\\..\\shaders\\terrain.frag");
 
 		//wavefront .obj objects
-		//0-monkey(V--), 1-monkey_normals(V-N), 2-sofa(V-N), 3-windmill1(VTN), 4-castle(VTN), 5-towerhouse(VTN)
-		someObject.load_obj(objects[0], false, true);
+		//0-monkey(V--), 1-monkey_normals(V-N), 2-sofa(V-N), 3-windmill1(VTN)
+		//4-castle(VTN), 5-towerhouse(VTN), 6-torch(VTN), 7-door(VTN)
+		windmill.load_obj(objects[3], false, true);
+		castle.load_obj(objects[4], false, true);
+		torch.load_obj(objects[6], false, true);
+		door.load_obj(objects[7], false, true);
+		someObject.load_obj(objects[5], false, true);
 	}catch (exception & e){
 		cout << "Caught exception: " << e.what() << endl;
 		//cin.ignore();
@@ -285,8 +309,8 @@ void init(GLWrapper* glw)
 		}
 
 		// Enable face culling
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
+		//glEnable(GL_CULL_FACE);
+		//glCullFace(GL_BACK);
 
 		// This is the location of the texture object (name of the sampler in the fragment shader)
 		int loc = glGetUniformLocation(programs[i], "texture");
@@ -295,9 +319,9 @@ void init(GLWrapper* glw)
 
 	//terrain object
 	octaves = 4;
-	perlin_scale = 2.f;
+	perlin_scale = 3.f;
 	perlin_frequency = 1.f;
-	land_size = 10.f;
+	land_size = 20.f;
 	land_resolution = 1000;
 	heightfield = new terrain_object(octaves, perlin_frequency, perlin_scale);
 	heightfield->createTerrain(land_resolution, land_resolution, land_size, land_size, sealevel);
@@ -310,7 +334,7 @@ void init(GLWrapper* glw)
 	aSphere.makeSphere(numlats, numlongs);
 
 	// Define initial object positions
-	get_terrain_position(heightfield);
+	//y = get_terrain_position(heightfield,x,z);
 
 	//error check
 	for (int i = 0; i < program_amount; i++)
@@ -319,6 +343,21 @@ void init(GLWrapper* glw)
 		GLint* px = &x1;
 		glGetProgramiv(programs[i], GL_ATTACHED_SHADERS, px);//can change GL_ATTACHED_SHADERS to some program property from https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glGetProgram.xhtml
 		cout << "program " << i << ", attached shaders: " << x1 << endl;
+	}
+}
+
+void check_for_gl_error() {
+	GLenum error;
+	while ((error = glGetError()) != GL_NO_ERROR) {
+		if (error == GL_INVALID_VALUE) {
+			cerr << "error occurred: " << error << " GL_INVALID_VALUE" << endl;
+		}
+		else if (error == GL_INVALID_OPERATION) {
+			cerr << "error occurred: " << error << " GL_INVALID_OPERATION" << endl;
+		}
+		else {
+			cerr << "unknown error occurred: " << error << endl;
+		}
 	}
 }
 
@@ -349,16 +388,19 @@ void display() {
 	mat4 projection = perspective(radians(30.0f), aspect_ratio, 0.1f, 100.0f);
 
 	// Camera matrix
+	vec3 player_position = vec3(view_move_x, view_move_y, view_move_z);
+	vec3 forward = vec3(x,y,z);
 	mat4 view = lookAt(
-		vec3(view_move_x, view_move_y, view_move_z), // Camera is at (0,0,4), in World Space
-		vec3(x, y + .2f, z), // and looks at the object
-		vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
+		forward,
+		player_position,
+		vec3(0, 1, 0)
 	);
 
 	// View rotations/transforms
-	view = rotate(view, -radians(vx), vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
-	view = rotate(view, -radians(vy), vec3(0, 1, 0)); //rotating in clockwise direction around y-axis
-	view = rotate(view, -radians(vz), vec3(0, 0, 1)); //rotating in clockwise direction around z-axis
+	//view = translate(view, player_position);
+	//view = rotate(view, -radians(vx), vec3(.1f, 0, 0)); //normalize(vec3(player_position.x, 0, 0))); //rotating in clockwise direction around x-axis
+	//view = rotate(view, -radians(vy), vec3(0, 1, 0)); //normalize(vec3(0, player_position.y, 0)));// //rotating in clockwise direction around y-axis		USE FOR PLAYER ROTATION
+	//view = rotate(view, -radians(vz), vec3(0, 0, .1f)); //normalize(vec3(0, 0, player_position.z)));// //rotating in clockwise direction around z-axis
 
 	// Light sources
 	vec4 lightpos1 = view * vec4(light_x, light_y, light_z, 1.0);
@@ -375,20 +417,103 @@ void display() {
 	glUniform1f(ambient_constantID[current_program], ambient_constant);
 	glFrontFace(GL_CW);
 
-	GLenum uniform_error;
-	while ((uniform_error = glGetError()) != GL_NO_ERROR) {
-		if (uniform_error == GL_INVALID_VALUE) {
-			cerr << "error occurs when passing uniforms: " << uniform_error << " GL_INVALID_VALUE" << endl;
-		}
-		else if (uniform_error == GL_INVALID_OPERATION) {
-			cerr << "error occurs when passing uniforms: " << uniform_error << " GL_INVALID_OPERATION" << endl;
-		}
-		else {
-			cerr << "error occurs when passing uniforms: " << uniform_error << endl;
-		}
+	check_for_gl_error();
+
+	// Terrain
+	model.push(model.top());
+	{
+		// switch to terrain program
+		glUseProgram(programs[3]);
+
+		// Uniforms
+		glUniformMatrix4fv(modelID[3], 1, GL_FALSE, &(model.top()[0][0]));
+		glUniformMatrix4fv(viewID[3], 1, GL_FALSE, &view[0][0]);
+		glUniformMatrix4fv(projectionID[3], 1, GL_FALSE, &projection[0][0]);
+		glUniform1ui(colourmodeID[3], colourmode);
+
+		// Draw terrain
+		heightfield->drawObject(drawmode);
+
+		// switch to objects program
+		glUseProgram(programs[current_program]);
 	}
+	model.pop();
+	check_for_gl_error();
 
+	//immovable objects
+	//castle
+	model.push(model.top());
+	{
+		GLuint castle_program = 1;
+		glUseProgram(programs[castle_program]);
 
+		// Transformations
+		float castle_x = -10;
+		float castle_z = 0;
+		model.top() = translate(model.top(), vec3(castle_x, get_terrain_position(heightfield,0,0)+1.f, castle_z));
+		model.top() = scale(model.top(), vec3(model_scale, model_scale, model_scale));
+
+		// Uniforms
+		glUniformMatrix4fv(modelID[castle_program], 1, GL_FALSE, &(model.top()[0][0]));
+		normalmatrix = transpose(inverse(mat3(view * model.top())));
+		glUniformMatrix3fv(normalmatrixID[castle_program], 1, GL_FALSE, &normalmatrix[0][0]);
+
+		// Textures
+		glBindTexture(GL_TEXTURE_2D, textureID[0]);
+
+		// Draw object
+		castle.drawObject(drawmode);
+		glUseProgram(programs[current_program]);
+	}
+	model.pop();
+	check_for_gl_error();
+	//windmill
+	model.push(model.top());
+	{
+		// Transformations
+		float windmill_x = 7;
+		float windmill_z = -7;
+		model.top() = translate(model.top(), vec3(windmill_x, get_terrain_position(heightfield, windmill_x, windmill_z)-.1f, windmill_z));
+		model.top() = scale(model.top(), vec3(model_scale * 4, model_scale * 4, model_scale * 4));
+		model.top() = rotate(model.top(), -radians(120.f), vec3(0, 1, 0)); //rotating in clockwise direction around z-axis
+
+		// Uniforms
+		glUniformMatrix4fv(modelID[current_program], 1, GL_FALSE, &(model.top()[0][0]));
+		normalmatrix = transpose(inverse(mat3(view * model.top())));
+		glUniformMatrix3fv(normalmatrixID[current_program], 1, GL_FALSE, &normalmatrix[0][0]);
+
+		// Textures
+		//
+
+		// Draw object
+		windmill.drawObject(drawmode);
+	}
+	model.pop();
+	check_for_gl_error();
+
+	//Torch
+	model.push(model.top());
+	{
+		// Transformations
+		float torch_x = 7;
+		float torch_z = -7;
+		model.top() = translate(model.top(), vec3(torch_x, get_terrain_position(heightfield, torch_x, torch_z) - .1f, torch_z));
+		model.top() = scale(model.top(), vec3(model_scale, model_scale, model_scale));
+		model.top() = rotate(model.top(), -radians(120.f), vec3(0, 1, 0)); //rotating in clockwise direction around z-axis
+
+		// Uniforms
+		glUniformMatrix4fv(modelID[current_program], 1, GL_FALSE, &(model.top()[0][0]));
+		normalmatrix = transpose(inverse(mat3(view * model.top())));
+		glUniformMatrix3fv(normalmatrixID[current_program], 1, GL_FALSE, &normalmatrix[0][0]);
+
+		// Textures
+		//
+
+		// Draw object
+		windmill.drawObject(drawmode);
+	}
+	model.pop();
+	check_for_gl_error();
 	// Lightsource 1
 	model.push(model.top());
 	{
@@ -416,118 +541,68 @@ void display() {
 		glUniform1ui(emitmodeID[current_program], emitmode);
 	}
 	model.pop();
+	check_for_gl_error();
 
-	GLenum lightsource_error;
-	while ((lightsource_error = glGetError()) != GL_NO_ERROR) {
-		if (lightsource_error == GL_INVALID_VALUE) {
-			cerr << "error occurs when drawing positional lightsource: " << lightsource_error << " GL_INVALID_VALUE" << endl;
-		}
-		else if (lightsource_error == GL_INVALID_OPERATION) {
-			cerr << "error occurs when drawing positional lightsource: " << lightsource_error << " GL_INVALID_OPERATION" << endl;
-		}
-		else {
-			cerr << "error occurs when drawing positional lightsource: " << lightsource_error << endl;
-		}
-	}
-
-	// Global transformations
-	model.top() = translate(model.top(), vec3(x, y+.2f, z));
-	//model.top() = scale(model.top(), vec3(model_scale, model_scale, model_scale));//scale equally in all axis
-	model.top() = rotate(model.top(), -radians(angle_x - 50.f), vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
-	model.top() = rotate(model.top(), -radians(angle_y), vec3(0, 1, 0)); //rotating in clockwise direction around y-axis
-	model.top() = rotate(model.top(), -radians(angle_z), vec3(0, 0, 1)); //rotating in clockwise direction around z-axis
-
-
-	GLenum pointer_error;
-	while ((pointer_error = glGetError()) != GL_NO_ERROR) {
-		if (pointer_error == GL_INVALID_VALUE) {
-			cerr << "error occurs when drawing view pointer: " << pointer_error << " GL_INVALID_VALUE" << endl;
-		}
-		else if (pointer_error == GL_INVALID_OPERATION) {
-			cerr << "error occurs when drawing view pointer: " << pointer_error << " GL_INVALID_OPERATION" << endl;
-		}
-		else {
-			cerr << "error occurs when drawing view pointer: " << pointer_error << endl;
-		}
-	}
-
-	// Object 1
+	/*
+	//L-Trees
 	model.push(model.top());
 	{
-		// Transformations
-		//model.top() = translate(model.top(), vec3(x, y+0.2, z));
-		model.top() = scale(model.top(), vec3(1.f, 1.f, 1.f));//scale equally in all axis
+		//vars
 
-		// Uniforms
-		glUniformMatrix4fv(modelID[current_program], 1, GL_FALSE, &(model.top()[0][0]));
-		normalmatrix = transpose(inverse(mat3(view * model.top())));
-		glUniformMatrix3fv(normalmatrixID[current_program], 1, GL_FALSE, &normalmatrix[0][0]);
+		//fore each level
+		//for(int i=0;i<;i++){
+			//get random coordinates
+			//
 
-		// Textures
-		glBindTexture(GL_TEXTURE_2D, textureID[0]);
-
-		// Draw object
-		//someObject.overrideColour(vec4(0.f, 0.f, 1.f, 1.f));
-		someObject.drawObject(drawmode);
+			//create level
+		//}
 	}
 	model.pop();
+	check_for_gl_error();
+	*/
 
-	// Terrain
-	{
-		// switch to terrain program
-		glUseProgram(programs[3]);
 
-		// Transformations
-		mat4 new_model = mat4(1.0f);
 
-		// Uniforms
-		glUniformMatrix4fv(modelID[3], 1, GL_FALSE, &(new_model[0][0]));
-		glUniformMatrix4fv(viewID[3], 1, GL_FALSE, &view[0][0]);
-		glUniformMatrix4fv(projectionID[3], 1, GL_FALSE, &projection[0][0]);
-		glUniform1ui(colourmodeID[3], colourmode);
+	// Global transformations
+	//model.top() = translate(model.top(), vec3(x, y, z));
+	//model.top() = scale(model.top(), vec3(model_scale, model_scale, model_scale));//scale equally in all axis
+	//model.top() = rotate(model.top(), -radians(angle_x - 50.f), vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
+	//model.top() = rotate(model.top(), -radians(angle_y), vec3(0, 1, 0)); //rotating in clockwise direction around y-axis
+	//model.top() = rotate(model.top(), -radians(angle_z), vec3(0, 0, 1)); //rotating in clockwise direction around z-axis
 
-		// Draw terrain
-		heightfield->drawObject(drawmode);
+	// Object 1
+	//model.push(model.top());
+	//{
+	//	// Transformations
+	//	//model.top() = translate(model.top(), vec3(x, y+0.2, z));
+	//	model.top() = scale(model.top(), vec3(model_scale, model_scale, model_scale));//scale equally in all axis
 
-		// switch to objects program
-		glUseProgram(programs[current_program]);
-	}
+	//	// Uniforms
+	//	glUniformMatrix4fv(modelID[current_program], 1, GL_FALSE, &(model.top()[0][0]));
+	//	normalmatrix = transpose(inverse(mat3(view * model.top())));
+	//	glUniformMatrix3fv(normalmatrixID[current_program], 1, GL_FALSE, &normalmatrix[0][0]);
 
-	GLenum terrain_error;
-	while ((terrain_error = glGetError()) != GL_NO_ERROR) {
-		if (terrain_error == GL_INVALID_VALUE) {
-			cerr << "error occurs when drawing terrain: " << terrain_error << " GL_INVALID_VALUE" << endl;
-		}
-		else if (terrain_error == GL_INVALID_OPERATION) {
-			cerr << "error occurs when drawing terrain: " << terrain_error << " GL_INVALID_OPERATION" << endl;
-		}
-		else {
-			cerr << "error occurs when drawing terrain: " << terrain_error << endl;
-		}
-	}
+	//	// Textures
+	//	glBindTexture(GL_TEXTURE_2D, textureID[0]);
+
+	//	// Draw object
+	//	//someObject.overrideColour(vec4(0.f, 0.f, 1.f, 1.f));
+	//	someObject.drawObject(drawmode);
+	//}
+	//model.pop();
+	//check_for_gl_error();
 
 	// Reset for next loop
 	glDisableVertexAttribArray(0);
 	glUseProgram(0);
 
 	// Modify our animation variables
-	angle_x += angle_inc_x;
-	angle_y += angle_inc_y;
-	angle_z += angle_inc_z;
+	//angle_x += angle_inc_x;
+	//angle_y += angle_inc_y;
+	//angle_z += angle_inc_z;
 
-	//check for error
-	GLenum err;
-	while ((err = glGetError()) != GL_NO_ERROR) {
-		if (err == GL_INVALID_VALUE) {
-			cerr << "OpenGL error: " << err << " GL_INVALID_VALUE" << endl;
-		}
-		else if (err == GL_INVALID_OPERATION) {
-			cerr << "OpenGL error: " << err << " GL_INVALID_OPERATION" << endl;
-		}
-		else {
-			cerr << "OpenGL error: " << err << endl;
-		}
-	}
+	//check for uncaught error
+	check_for_gl_error();
 }
 
 /* Called whenever the window is resized. The new window size is given, in pixels. */
@@ -539,8 +614,8 @@ static void reshape(GLFWwindow* window, int w, int h)
 
 
 static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods){
-	bool recreate_terrain = false;
-	bool placeObject = false;
+	//bool recreate_terrain = false;
+	//bool placeObject = false;
 
 	/* Enable this call if you want to disable key responses to a held down key*/
 	//if (action != GLFW_PRESS) return;
@@ -548,61 +623,193 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
 
-	//rotate object
-	if (key == 'Q') angle_inc_x -= 0.05f;
-	if (key == 'W') angle_inc_x += 0.05f;
-	if (key == 'E') angle_inc_y -= 0.05f;
-	if (key == 'R') angle_inc_y += 0.05f;
-	if (key == 'T') angle_inc_z -= 0.05f;
-	if (key == 'Y') angle_inc_z += 0.05f;
+	// activate
+	if (key == 'F') {
+		//
+	}
 
-	//scale object
-	if (key == 'A') model_scale -= 0.02f;
-	if (key == 'S') model_scale += 0.02f;
+	//move
+	//look left/right
+	if (key == 'Q' && action == GLFW_PRESS) {
+		//turn left
+		if (z > view_move_z && x == view_move_x) {
+			//facing away turning left
+			view_move_x -= 1.f;
+			view_move_z = z;
+		} else if (z < view_move_z && x == view_move_x) {
+			//facing toward turning left
+			view_move_x += 1.f;
+			view_move_z = z;
+		} else {
+			//facing sideways
+			//find side
+			if (x > view_move_x) {
+				//facing left turning left
+				view_move_z += 1.f;
+				view_move_x = x;
+			} else if (x < view_move_x) {
+				//facing right turning left
+				view_move_z -= 1.f;
+				view_move_x = x;
+			}
+		}
+	}
+	if (key == 'E' && action == GLFW_PRESS) {
+		//turn right
+		if (z > view_move_z && x == view_move_x) {
+			//facing away turning right
+			view_move_x += 1.f;
+			view_move_z = z;
+		}
+		else if (z < view_move_z && x == view_move_x) {
+			//facing toward turning right
+			view_move_x -= 1.f;
+			view_move_z = z;
+		}
+		else {
+			//facing sideways
+			//find side
+			if (x > view_move_x) {
+				//facing left turning right
+				view_move_z -= 1.f;
+				view_move_x = x;
+			}
+			else if (x < view_move_x) {
+				//facing right turning right
+				view_move_z += 1.f;
+				view_move_x = x;
+			}
+		}
+	}
+	//strafe left/right
+	if (key == 'A') {
+		//turn left
+		if (z > view_move_z&& x == view_move_x) {
+			//facing away strafing left
+			view_move_x -= 0.05f;
+			x -= 0.05f;
+		} else if (z < view_move_z && x == view_move_x) {
+			//facing toward strafing left
+			view_move_x += 0.05f;
+			x += 0.05f;
+		} else {
+			//facing sideways
+			//find side
+			if (x > view_move_x) {
+				//facing left strafing left
+				view_move_z += 0.05f;
+				z += 0.05f;
+			} else if (x < view_move_x) {
+				//facing right strafing left
+				view_move_z -= 0.05f;
+				z -= 0.05f;
+			}
+		}
+	}
+	if (key == 'D') {
+		//turn right
+		if (z > view_move_z&& x == view_move_x) {
+			//facing away strafing right
+			view_move_x += 0.05f;
+			x += 0.05f;
+		} else if (z < view_move_z && x == view_move_x) {
+			//facing toward strafing right
+			view_move_x -= 0.05f;
+			x -= 0.05f;
+		} else {
+			//facing sideways
+			//find side
+			if (x > view_move_x) {
+				//facing left strafing right
+				view_move_z -= 0.05f;
+				z -= 0.05f;
+			} else if (x < view_move_x) {
+				//facing right strafing right
+				view_move_z += 0.05f;
+				z += 0.05f;
+			}
+		}
+	}
 
-	//move object
-	if (key == 'Z') { x += 0.05f; placeObject = true; }
-	if (key == 'X') { x -= 0.05f; placeObject = true; }
-	//if (key == 'C') y -= 0.05f;
-	//if (key == 'V') y += 0.05f;
-	if (key == 'B') { z += 0.05f; placeObject = true; }
-	if (key == 'N') { z -= 0.05f; placeObject = true; }
+	//look up/down
+	if (key == 'Z' && view_move_y > -1.8f) { view_move_y += 0.05f; }//up
+	if (key == 'X' && view_move_y < 3.6f) { view_move_y -= 0.05f; }//down
+	//reset to normal
+	if (key == ',' && action == GLFW_PRESS) {
+		view_move_y = y = 0.f;
+	}
 
-	if (key == 'J') vx += 1.f;
-	if (key == 'K') vx -= 1.f;
-	if (key == 'U') vy += 1.f;
-	if (key == 'I') vy -= 1.f;
-	if (key == 'O') vz += 1.f;
-	if (key == 'P') vz -= 1.f;
+	//move
+	if (key == 'S') {
+		//facing away
+		if (z > view_move_z&& x == view_move_x) {
+			//facing away
+			view_move_z += 0.05f;
+			z += 0.05f;
+		}
+		else if (z < view_move_z && x == view_move_x) {
+			//facing toward
+			view_move_z -= 0.05f;
+			z -= 0.05f;
+		}
+		else {
+			//facing sideways
+			//find side
+			if (x > view_move_x) {
+				//facing left
+				view_move_x += 0.05f;
+				x += 0.05f;
+			}
+			else if (x < view_move_x) {
+				//facing right
+				view_move_x -= 0.05f;
+				x -= 0.05f;
+			}
+		}
+	}
+	if (key == 'W') {
+		//forward
+		if (z > view_move_z&& x == view_move_x) {
+			//facing away
+			view_move_z -= 0.05f;
+			z -= 0.05f;
+		} else if (z < view_move_z && x == view_move_x) {
+			//facing toward
+			view_move_z += 0.05f;
+			z += 0.05f;
+		} else {
+			//facing sideways
+			//find side
+			if (x > view_move_x) {
+				//facing left
+				view_move_x -= 0.05f;
+				x -= 0.05f;
+			} else if (x < view_move_x) {
+				//facing right
+				view_move_x += 0.05f;
+				x += 0.05f;
+			}
+		}
+	}
 
-	//object controls
-	if (key == GLFW_KEY_KP_4) view_move_x += 0.05f;
-	if (key == GLFW_KEY_KP_6) view_move_x -= 0.05f;
-	if (key == GLFW_KEY_KP_8) view_move_y += 0.05f;
-	if (key == GLFW_KEY_KP_2) view_move_y -= 0.05f;
-	if (key == GLFW_KEY_KP_0) view_move_z += 0.05f;
-	if (key == GLFW_KEY_KP_5) view_move_z -= 0.05f;
+
 
 	//light controls
-	if (key == GLFW_KEY_1) light_x -= 0.05f;
+	/*if (key == GLFW_KEY_1) light_x -= 0.05f;
 	if (key == GLFW_KEY_2) light_x += 0.05f;
 	if (key == GLFW_KEY_3) light_y -= 0.05f;
 	if (key == GLFW_KEY_4) light_y += 0.05f;
 	if (key == GLFW_KEY_5) light_z -= 0.05f;
-	if (key == GLFW_KEY_6) light_z += 0.05f;
+	if (key == GLFW_KEY_6) light_z += 0.05f;*/
 
-	//reset position
-	if (key == ',' && action != GLFW_PRESS) {
-		view_move_x = 0.f;
-		view_move_y = 0.f;
-		view_move_z = 4.f;
-	}
-	//reset looking at
+	//current position
 	if (key == '.' && action != GLFW_PRESS) {
-		x = 0.f;
-		//y = 0.f;
-		z = 0.f;
-		placeObject = true;
+		cout << "view_move_x: " << view_move_x << endl;
+		cout << "view_move_y: " << view_move_y << endl;
+		cout << "view_move_z: " << view_move_z << endl;
+		cout << "x: " << x << endl;
+		cout << "y: " << y << endl;
+		cout << "z: " << z << endl;
 	}
 
 	// Object colour/texture or passed colour
@@ -629,19 +836,20 @@ static void keyCallback(GLFWwindow* window, int key, int s, int action, int mods
 	}
 
 	// Keep object on the terrain
-	if (placeObject)
+	/*if (placeObject)
 	{
-		get_terrain_position(heightfield);
-	}
+		y = get_terrain_position(heightfield, x, z);
+	}*/
 
-	if (recreate_terrain)
+	//reset heightfield
+	/*if (recreate_terrain)
 	{
 		delete heightfield;
 		heightfield = new terrain_object(octaves, perlin_frequency, perlin_scale);
 		heightfield->createTerrain(land_resolution, land_resolution, land_size, land_size, sealevel);
 		heightfield->setColourBasedOnHeight();
 		heightfield->createObject();
-	}
+	}*/
 
 
 	//DEBUG CONTROLS
