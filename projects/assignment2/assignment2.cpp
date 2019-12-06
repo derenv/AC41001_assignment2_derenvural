@@ -99,6 +99,9 @@ TinyObjLoader torch;
 TinyObjLoader door;
 TinyObjLoader teapot;
 
+TinyObjLoader statue;
+TinyObjLoader tower;
+
 TinyObjLoader castle_outside;
 TinyObjLoader castle_courtyard;
 TinyObjLoader castle_roof;
@@ -347,7 +350,8 @@ void init(GLWrapper* glw)
 		door.load_obj(objects[7], false, true);
 		teapot.load_obj(objects[11], false, true);
 
-		//tower.load_obj(objects[5], false, true);
+		tower.load_obj(objects[7], false, true);
+		statue.load_obj(objects[8], false, true);
 
 		castle_outside.load_obj(objects[4], false, true);
 		castle_courtyard.load_obj(objects[8], false, true);
@@ -370,6 +374,7 @@ void init(GLWrapper* glw)
 	// Load textures
 	cout << "===TEXTURES===" << endl;
 	for (int i = 0; i < texture_amount; i++) {
+		glActiveTexture(GL_TEXTURE0 + i);
 		if (!load_texture(image_files[i], textureID[i], true))
 		{
 			cout << "Fatal error loading texture: " << image_files[i] << endl;
@@ -409,7 +414,7 @@ void init(GLWrapper* glw)
 		//glCullFace(GL_BACK);
 
 		// This is the location of the texture object (name of the sampler in the fragment shader)
-		int loc = glGetUniformLocation(programs[i], "texture");
+		int loc = glGetUniformLocation(programs[i], "tex1");
 		if (loc >= 0) { glUniform1i(loc, 0); }
 	}
 	// Uniforms error check
@@ -418,18 +423,18 @@ void init(GLWrapper* glw)
 	the_tree.init(glw,textureID[6],colourmode, programs[4]);
 
 	cout << "===TERRAIN===" << endl;
-	// Terrain object
-	octaves = 4;
-	perlin_scale = 3.f;
-	perlin_frequency = 1.f;
-	land_size = 20.f;
-	land_resolution = 1000;
-	heightfield = new terrain_object(octaves, perlin_frequency, perlin_scale);
-	heightfield->createTerrain(land_resolution, land_resolution, land_size, land_size, sealevel);
-	heightfield->setColourBasedOnHeight();
-	heightfield->createObject();
-	glBindVertexArray(vao);
-	current_program = 0;
+	{
+		// Terrain object
+		octaves = 4;
+		perlin_scale = 3.f;
+		perlin_frequency = 1.f;
+		land_size = 20.f;
+		land_resolution = 1000;
+		heightfield = new terrain_object(octaves, perlin_frequency, perlin_scale);
+		heightfield->createTerrain(land_resolution, land_resolution, land_size, land_size, sealevel);
+		heightfield->setColourBasedOnHeight();
+		heightfield->createObject();
+	}
 	// Terrain error check
 	check_for_gl_error();
 
@@ -536,10 +541,10 @@ void display() {
 
 	//immovable objects
 	//castle
+	GLuint castle_program = 0;
+	glUseProgram(programs[castle_program]);
 	model.push(model.top());
 	{
-		GLuint castle_program = 0;
-		glUseProgram(programs[castle_program]);
 
 		// Transformations
 		float castle_x = -10;
@@ -553,11 +558,10 @@ void display() {
 		glUniformMatrix3fv(normalmatrixID[castle_program], 1, GL_FALSE, &normalmatrix[0][0]);
 
 		// Textures
-		//glBindTexture(GL_TEXTURE_2D, textureID[3]);//BRICK
+		glBindTexture(GL_TEXTURE_2D, textureID[3]);//BRICK
 
 		// Draw object
 		castle_outside.drawObject(drawmode);
-		glUseProgram(programs[current_program]);
 	}
 	model.pop();
 	check_for_gl_error();
@@ -578,11 +582,10 @@ void display() {
 		glUniformMatrix3fv(normalmatrixID[castle_program], 1, GL_FALSE, &normalmatrix[0][0]);
 
 		// Textures
-		//glBindTexture(GL_TEXTURE_2D, textureID[3]);//STONE
+		glBindTexture(GL_TEXTURE_2D, textureID[3]);//STONE
 
 		// Draw object
 		castle_courtyard.drawObject(drawmode);
-		glUseProgram(programs[current_program]);
 	}
 	model.pop();
 	check_for_gl_error();
@@ -607,7 +610,6 @@ void display() {
 
 		// Draw object
 		castle_roof.drawObject(drawmode);
-		glUseProgram(programs[current_program]);
 	}
 	model.pop();
 	check_for_gl_error();
@@ -632,30 +634,80 @@ void display() {
 
 		// Draw object
 		castle_walls.drawObject(drawmode);
-		glUseProgram(programs[current_program]);
+	}
+	model.pop();
+	glUseProgram(programs[current_program]);
+	check_for_gl_error();
+	model.push(model.top());
+	{
+		//GLuint door_program = 1;
+		//glUseProgram(programs[door_program]);
+		// Transformations
+		model.top() = translate(model.top(), vec3(-14, 1.5, -1.75));
+		model.top() = scale(model.top(), vec3(model_scale / 2, model_scale / 2, model_scale / 2));
+		model.top() = rotate(model.top(), -radians(90.f), vec3(0, 1, 0));
+
+		// Uniforms
+		glUniformMatrix4fv(modelID[current_program], 1, GL_FALSE, &(model.top()[0][0]));
+		normalmatrix = transpose(inverse(mat3(view * model.top())));
+		glUniformMatrix3fv(normalmatrixID[current_program], 1, GL_FALSE, &normalmatrix[0][0]);
+
+		// Textures
+		//glBindTexture(GL_TEXTURE_2D, textureID[6]);//DOOR
+		teapot.overrideColour(vec4(0.f, 0.f, 1.f, 1.f));
+
+		// Draw object
+		door.drawObject(drawmode);
+		//glUseProgram(programs[current_program]);
 	}
 	model.pop();
 	check_for_gl_error();
-	//model.push(model.top());
-	//{
-	//	// Transformations
-	//	model.top() = translate(model.top(), vec3(light_x, light_y - .05f, light_z + .05f));
-	//	model.top() = scale(model.top(), vec3(model_scale / 3, model_scale / 3, model_scale / 3));
-	//	model.top() = rotate(model.top(), -radians(90.f), vec3(0, 1, 0)); //rotating in clockwise direction around z-axis
+	model.push(model.top());
+	{
+		//GLuint door_program = 1;
+		//glUseProgram(programs[door_program]);
+		// Transformations
+		model.top() = translate(model.top(), vec3(0, 0, 0));
+		//model.top() = scale(model.top(), vec3(model_scale / 3, model_scale / 3, model_scale / 3));
+		//model.top() = rotate(model.top(), -radians(90.f), vec3(0, 1, 0)); //rotating in clockwise direction around z-axis
 
-	//	// Uniforms
-	//	glUniformMatrix4fv(modelID[current_program], 1, GL_FALSE, &(model.top()[0][0]));
-	//	normalmatrix = transpose(inverse(mat3(view * model.top())));
-	//	glUniformMatrix3fv(normalmatrixID[current_program], 1, GL_FALSE, &normalmatrix[0][0]);
+		// Uniforms
+		glUniformMatrix4fv(modelID[current_program], 1, GL_FALSE, &(model.top()[0][0]));
+		normalmatrix = transpose(inverse(mat3(view * model.top())));
+		glUniformMatrix3fv(normalmatrixID[current_program], 1, GL_FALSE, &normalmatrix[0][0]);
 
-	//	// Textures
-	//	//glBindTexture(GL_TEXTURE_2D, textureID[7]);//DOOR
+		// Textures
+		//glBindTexture(GL_TEXTURE_2D, textureID[6]);//DOOR
 
-	//	// Draw object
-	//	door.drawObject(drawmode);
-	//}
-	//model.pop();
-	//check_for_gl_error();
+		// Draw object
+		tower.drawObject(drawmode);
+		//glUseProgram(programs[current_program]);
+	}
+	model.pop();
+	check_for_gl_error();
+	model.push(model.top());
+	{
+		//GLuint door_program = 1;
+		//glUseProgram(programs[door_program]);
+		// Transformations
+		model.top() = translate(model.top(), vec3(light_x, light_y, light_z));
+		//model.top() = scale(model.top(), vec3(model_scale / 3, model_scale / 3, model_scale / 3));
+		//model.top() = rotate(model.top(), -radians(90.f), vec3(0, 1, 0)); //rotating in clockwise direction around z-axis
+
+		// Uniforms
+		glUniformMatrix4fv(modelID[current_program], 1, GL_FALSE, &(model.top()[0][0]));
+		normalmatrix = transpose(inverse(mat3(view * model.top())));
+		glUniformMatrix3fv(normalmatrixID[current_program], 1, GL_FALSE, &normalmatrix[0][0]);
+
+		// Textures
+		//glBindTexture(GL_TEXTURE_2D, textureID[6]);//DOOR
+
+		// Draw object
+		//door.drawObject(drawmode);
+		//glUseProgram(programs[current_program]);
+	}
+	model.pop();
+	check_for_gl_error();
 
 
 
@@ -767,41 +819,24 @@ void display() {
 		model.pop();
 		check_for_gl_error();
 	}
-	/*
-	//L-Trees
-	model.push(model.top());
-	{
-		//vars
-
-		//fore each level
-		//for(int i=0;i<;i++){
-			//get random coordinates
-			//
-
-			//create level
-		//}
-	}
-	model.pop();
-	check_for_gl_error();
-	*/
 
 
 
 	
 
 
-	// Object 1
-	GLuint teapot_program = 2;
+	// Teapots
+	GLuint teapot_program = 1;
 	glUseProgram(programs[teapot_program]);
 
-	glUniformMatrix4fv(viewID[current_program], 1, GL_FALSE, &view[0][0]);
-	glUniformMatrix4fv(projectionID[current_program], 1, GL_FALSE, &projection[0][0]);
-	glUniform4fv(lightposID[current_program], 2, value_ptr(light_positions[0]));
-	glUniform1ui(colourmodeID[current_program], colourmode);
-	glUniform1ui(attenuationmodeID[current_program], attenuationmode);
+	glUniformMatrix4fv(viewID[teapot_program], 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(projectionID[teapot_program], 1, GL_FALSE, &projection[0][0]);
+	glUniform4fv(lightposID[teapot_program], 2, value_ptr(light_positions[0]));
+	glUniform1ui(colourmodeID[teapot_program], colourmode);
+	glUniform1ui(attenuationmodeID[teapot_program], attenuationmode);
 	emitmode = 0;
-	glUniform1ui(emitmodeID[current_program], emitmode);
-	glUniform1f(ambient_constantID[current_program], ambient_constant);
+	glUniform1ui(emitmodeID[teapot_program], emitmode);
+	glUniform1f(ambient_constantID[teapot_program], ambient_constant);
 
 	for (int i = 0; i < 4; i++) {
 		model.push(model.top());

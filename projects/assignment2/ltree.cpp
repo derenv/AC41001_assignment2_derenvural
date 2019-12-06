@@ -30,9 +30,6 @@ if you prefer */
 #include "glm/gtc/matrix_transform.hpp"
 #include <glm/gtc/type_ptr.hpp>
 
-/* Include the hacked version of SOIL */
-#include "soil.h"
-
 using namespace glm;
 using namespace std;
 
@@ -44,8 +41,7 @@ public:
 	mat4 model;
 	GLuint program;
 	GLuint colourmode;
-	GLfloat angle_x, angle_inc_x, model_scale;
-	GLfloat angle_y, angle_inc_y, angle_z, angle_inc_z;
+	GLfloat model_scale;
 	GLuint drawmode;
 	GLuint modelID, viewID, projectionID;
 	GLuint colourmodeID;
@@ -68,10 +64,7 @@ public:
 		//x = 0;
 		//y = -0.5f;
 		//z = 0;
-		angle_y = angle_z = 0;
-		angle_x = -20.f;
-		angle_inc_x = angle_inc_y = angle_inc_z = 0;
-		model_scale = 0.5f;
+		model_scale = 1.f;
 		colourmode = new_colourmode;
 		leaves = 0;
 		program = new_program;
@@ -134,7 +127,7 @@ public:
 		int loc = glGetUniformLocation(program, "tex1");
 		if (loc >= 0) glUniform1i(loc, 0);
 
-		treelevel = 1;
+		treelevel = 2;
 	}
 
 	/* Called to update the display. Note that this function is called in the event loop in the wrapper
@@ -150,10 +143,7 @@ public:
 		model = mat4(1.0f);
 		lsystem_transform.top() = translate(lsystem_transform.top(), vec3(x, y, z));
 		lsystem_transform.top() = scale(lsystem_transform.top(), vec3(model_scale, model_scale, model_scale));//scale equally in all axis
-		lsystem_transform.top() = rotate(lsystem_transform.top(), -radians(angle_x), vec3(1, 0, 0)); //rotating in clockwise direction around x-axis
-		lsystem_transform.top() = rotate(lsystem_transform.top(), -radians(angle_y), vec3(0, 1, 0)); //rotating in clockwise direction around y-axis
-		lsystem_transform.top() = rotate(lsystem_transform.top(), -radians(angle_z), vec3(0, 0, 1)); //rotating in clockwise direction around z-axis
-
+		
 		// Send our uniforms variables to the currently bound shader,
 		glUniformMatrix4fv(viewID, 1, GL_FALSE, &view[0][0]);
 		glUniformMatrix4fv(projectionID, 1, GL_FALSE, &projection[0][0]);
@@ -162,9 +152,6 @@ public:
 		tree(treelevel, leaves, x, y);
 
 		/* Modify our animation variables */
-		angle_x += angle_inc_x;
-		angle_y += angle_inc_y;
-		angle_z += angle_inc_z;
 	}
 
 	/* Draw a single branch */

@@ -2102,7 +2102,7 @@ bool LoadObj(attrib_t *attrib, std::vector<shape_t> *shapes,
           for (size_t s = 0; s < filenames.size(); s++) {
             std::string warn_mtl;
             std::string err_mtl;
-            bool ok = (*readMatFn)(filenames[s].c_str(), materials,
+            bool ok = (*readMatFn)(("..\\..\\objects\\"+filenames[s]).c_str(), materials,
                                    &material_map, &warn_mtl, &err_mtl);
             if (warn && (!warn_mtl.empty())) {
               (*warn) += warn_mtl;

@@ -24,7 +24,7 @@ out vert_data{
 //==TEST==
 //struct light_data{
 //	vec4 light_position;
-//    vec3 colour;
+//  vec3 colour;
 //	float ambient_coefficient;
 //
 //	float light_attenuation;//for point light
@@ -68,7 +68,7 @@ void main()
 		//light_directions[i] = mv_matrix * light_positions[i];//direction not position so just passed through (normalised in fragment shader)
 		//}else{
 		// Positional - work out direction from position
-		light_directions[i] = mv_matrix * (light_positions[i] - vert_pos);
+		light_directions[i] = normalize(mv_matrix * (light_positions[i] - vert_pos));
 		//}
 	}
 	

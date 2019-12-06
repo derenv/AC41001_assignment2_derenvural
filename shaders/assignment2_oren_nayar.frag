@@ -18,7 +18,6 @@ in vert_data{
 	vec4[3] light_directions;
 };
 
-
 //out
 out vec4 outputColor;
 
@@ -32,6 +31,8 @@ float attenuation_k = 0.5;
 uniform uint attenuationmode;
 uniform uint emitmode;
 uniform float ambient_constant;
+
+uniform sampler2D tex1;
 
 vec4 calc_oren_nayar(vec4 light_direction, vec4 emissive, vec4 ambient, vec3 normal, vec3 view_dir){
 	//calculate light info
@@ -123,8 +124,11 @@ void main()
 	
 		// Calculate current source
 		vec4 source = attenuation * oren_nayar;
+		
+		// Load texture using sample
+		vec4 texcolour = texture(tex1, vert_tex_coord);
 
 		// Add to total lighting
-		outputColor = outputColor + source;
+		outputColor = (outputColor + source) * texcolour;
 	}
 }
