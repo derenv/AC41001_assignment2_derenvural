@@ -64,11 +64,11 @@ void main()
 	// Calculate multiple light source directions
 	for(int i=0;i<3;i++){
 		//if(light_positions[i].w == 0){
-			// Directional
-			//light_directions[i] = mv_matrix * light_positions[i];//direction not position so just passed through (normalised in fragment shader)
+		// Directional
+		//light_directions[i] = mv_matrix * light_positions[i];//direction not position so just passed through (normalised in fragment shader)
 		//}else{
-			// Positional - work out direction from position
-			light_directions[i] = mv_matrix * (light_positions[i] - vert_pos);
+		// Positional - work out direction from position
+		light_directions[i] = mv_matrix * (light_positions[i] - vert_pos);
 		//}
 	}
 	

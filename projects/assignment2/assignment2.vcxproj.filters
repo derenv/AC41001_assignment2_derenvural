@@ -45,6 +45,9 @@
     <ClCompile Include="..\..\common\terrain_object.cpp">
       <Filter>Source Files\C++ Files</Filter>
     </ClCompile>
+    <ClCompile Include="ltree.cpp">
+      <Filter>Source Files\C++ Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\shaders\assignment2.vert">

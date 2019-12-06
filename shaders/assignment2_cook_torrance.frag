@@ -35,7 +35,7 @@ out vec4 outputColor;
 //globals
 vec4 global_ambient = vec4(0.05, 0.05, 0.05, 1.0);
 vec3 specular_albedo = vec3(.5, .5, .5);
-int  shininess = 8;
+int shininess = 8;
 const float PI = 3.141592653;
 float roughness = 0.5f;
 float F0 = 0.8f;

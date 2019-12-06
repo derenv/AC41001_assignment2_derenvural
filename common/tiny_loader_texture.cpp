@@ -71,7 +71,6 @@ void TinyObjLoader::load_obj(string inputfile, bool debugPrint, bool smoothShade
 	}
 
 	// texture coords sanity checks
-	use_colours = false;
 	if (attrib.texcoords.size() <= 0) {
 		//no texture coordinates present
 		cerr << "No texture coordinates present in file: " << inputfile << endl;
@@ -79,7 +78,6 @@ void TinyObjLoader::load_obj(string inputfile, bool debugPrint, bool smoothShade
 		if (attrib.colors.size() > 0) {
 			//no texture coordinates present
 			cerr << "Using colour values instead.." << endl;
-			use_colours = true;
 		} else {
 			cerr << "No colour values present in file: " << inputfile << endl;
 			exit(1);
@@ -173,9 +171,9 @@ void TinyObjLoader::load_obj(string inputfile, bool debugPrint, bool smoothShade
 
 
 	// set colours if valid, otherwise textures will be used
-	if (use_colours) {
-		overrideColour(vec4(0.f, 0.f, 1.f, 1.f));
-	}//else{
+	//if (use_colours) {
+	overrideColour(vec4(0.f, 0.f, 1.f, 1.f));
+	//}//else{
 		//Material Properties
 		//ambient (Ka)
 		//diffuse (Kd)
@@ -217,25 +215,25 @@ void TinyObjLoader::overrideColour(glm::vec4 c)
 void TinyObjLoader::drawObject(int drawmode)
 {
 	// Draw the object as GL_POINTS
+	glEnableVertexAttribArray(attribute_v_coord);
 	glBindBuffer(GL_ARRAY_BUFFER, positionBufferObject);
 	glVertexAttribPointer(attribute_v_coord, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(attribute_v_coord);
 
 	// Bind the object normals
+	glEnableVertexAttribArray(attribute_v_normal);
 	glBindBuffer(GL_ARRAY_BUFFER, normalBufferObject);
 	glVertexAttribPointer(attribute_v_normal, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-	glEnableVertexAttribArray(attribute_v_normal);
 
 	// Bind the object texture coords if they exist (otherwise use texture)
+	glEnableVertexAttribArray(attribute_v_texcoord);
 	glBindBuffer(GL_ARRAY_BUFFER, texCoordsObject);
 	glVertexAttribPointer(attribute_v_texcoord, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-	glEnableVertexAttribArray(attribute_v_texcoord);
 
 	// Bind the object colours if they exist (otherwise use texture)
 	if (use_colours) {
+		glEnableVertexAttribArray(attribute_v_colours);
 		glBindBuffer(GL_ARRAY_BUFFER, colourBufferObject);
 		glVertexAttribPointer(attribute_v_colours, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-		glEnableVertexAttribArray(attribute_v_colours);
 	}
 
 	glPointSize(3.f);

@@ -1,0 +1,23 @@
+ _ _ _   _ _ _	 _ _ _
+|     | |     | |     |
+|  Q  | |  W  | |  E  |
+|     | |     | |     |
+rotate  forward  rotate
+90 left         90 right
+ _ _ _	 _ _ _	 _ _ _
+|     |	|     | |     |
+|  A  | |  S  | |  D  |
+|     | |     | |     |
+strafe    back   strafe
+left              right
+ _ _ _
+|     |
+|  F  |
+|     |
+activate
+ _ _ _	 _ _ _
+|     |	|     |
+|  Z  | |  X  |
+|     | |     |
+ look     look
+  up      down
